@@ -37,6 +37,24 @@ type ShiftsResponse = {
   error?: string;
 };
 
+async function readJsonOrThrow<T>(res: Response, label: string): Promise<T> {
+  const text = await res.text().catch(() => "");
+
+  if (!res.ok) {
+    throw new Error(`${label} request failed (${res.status})${text ? ` — ${text.slice(0, 180)}` : ""}`);
+  }
+
+  if (!text.trim()) {
+    throw new Error(`${label} returned an empty response`);
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(`${label} returned invalid JSON${text ? ` — ${text.slice(0, 180)}` : ""}`);
+  }
+}
+
 function buildSalesUrl(companyId: number, date: string) {
   const url = new URL("/api/data/sales-perhour.php", window.location.origin);
   url.searchParams.set("company_id", String(companyId));
@@ -61,7 +79,7 @@ export function StoreDashboardCard({ store, date }: { store: Store; date: string
     salesKey,
     async () => {
       const res = await fetch(buildSalesUrl(store.id, date));
-      const json = (await res.json()) as SalesPerHourResponse;
+      const json = await readJsonOrThrow<SalesPerHourResponse>(res, "Sales");
       if (!res.ok || !json.success) throw new Error(json.error ?? "Sales load failed");
       return json;
     }
@@ -71,18 +89,27 @@ export function StoreDashboardCard({ store, date }: { store: Store; date: string
     shiftsKey,
     async () => {
       const res = await fetch(buildShiftsUrl(store.id, date));
-      const json = (await res.json()) as ShiftsResponse;
+      const json = await readJsonOrThrow<ShiftsResponse>(res, "Shifts");
       if (!res.ok || !json.success) throw new Error(json.error ?? "Shifts load failed");
       return json;
     }
   );
+
+  const formatErr = (err: unknown) => {
+    const msg = (err as any)?.message ? String((err as any).message) : "Unknown error";
+    if (msg.toLowerCase().includes("unauthorized")) return "Unauthorized (please sign in again)";
+    if (msg.toLowerCase().includes("forbidden")) return "Forbidden (no access)";
+    if (msg.toLowerCase().includes("empty response")) return "Server returned an empty response";
+    if (msg.toLowerCase().includes("invalid json")) return "Server returned an invalid response";
+    return msg;
+  };
 
   if (salesError || shiftsError) {
     return (
       <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-100">
         <div className="font-semibold">{store.name}</div>
         <div className="mt-1 text-xs opacity-80">
-          Failed to load: {(salesError ?? shiftsError)?.message ?? "Unknown error"}
+          Failed to load: {formatErr(salesError ?? shiftsError)}
         </div>
       </section>
     );

@@ -77,6 +77,20 @@ function fmtDateTime(s?: string | null) {
   return new Intl.DateTimeFormat("en-AU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(dt);
 }
 
+function fmtWhen(s?: string | null, todayISO?: string) {
+  if (!s) return { primary: "", secondary: "" };
+  const isoDay = typeof s === "string" ? s.slice(0, 10) : "";
+  const dt = new Date(s);
+  if (!Number.isFinite(dt.getTime())) return { primary: String(s), secondary: "" };
+
+  const time = new Intl.DateTimeFormat("en-AU", { hour: "2-digit", minute: "2-digit" }).format(dt);
+  if (todayISO && isoDay === todayISO) {
+    return { primary: time, secondary: "" };
+  }
+  const date = new Intl.DateTimeFormat("en-AU", { day: "2-digit", month: "short" }).format(dt);
+  return { primary: date, secondary: time };
+}
+
 function statusBadge(status?: string | null) {
   const s = (status ?? "").toLowerCase();
   if (s === "completed") return "bg-emerald-600/10 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300";
@@ -132,6 +146,7 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
   const rows = data?.data ?? [];
   const sorted = useMemo(() => [...rows].sort((a, b) => (b.sale.id ?? 0) - (a.sale.id ?? 0)), [rows]);
   const visible = sorted.slice(0, visibleCount);
+  const showCompanyColumn = !companyId;
 
   if (isLoading) {
     return (
@@ -251,7 +266,7 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
             <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
               <tr>
                 <th className="px-3 py-2 text-left font-medium">When</th>
-                <th className="px-3 py-2 text-left font-medium">Company</th>
+                {showCompanyColumn ? <th className="px-3 py-2 text-left font-medium">Company</th> : null}
                 <th className="px-3 py-2 text-left font-medium">Items</th>
                 <th className="px-3 py-2 text-right font-medium">Final</th>
               </tr>
@@ -262,6 +277,7 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
                 const itemNames = itemsFlat.map((i) => i.item_name).filter(Boolean) as string[];
                 const itemSummary = itemNames.slice(0, 2).join(", ");
                 const remaining = Math.max(0, itemNames.length - 2);
+                const when = fmtWhen(t.sale.sale_date, todayISO);
                 return (
                   <tr
                     key={t.sale.id}
@@ -269,19 +285,32 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
                     onClick={() => setSelected(t)}
                   >
                     <td className="px-3 py-2 align-top">
-                      <div className="font-medium">{fmtDateTime(t.sale.sale_date)}</div>
-                      <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">#{t.sale.id}</div>
+                      <div className="font-medium">
+                        {when.primary}
+                        {when.secondary ? <span className="ml-2 text-xs font-medium text-slate-500 dark:text-slate-400">{when.secondary}</span> : null}
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold leading-none ${statusBadge(t.sale.status)}`}>
+                          {t.sale.status ?? "Unknown"}
+                        </span>
+                        {t.sale.payment_type ? (
+                          <span className="inline-flex rounded-full bg-slate-600/10 px-2 py-1 text-[11px] font-semibold text-slate-700 dark:bg-slate-500/10 dark:text-slate-200">
+                            {t.sale.payment_type}
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
-                    <td className="px-3 py-2 align-top">
-                      <div className="font-medium">{t.sale.company_name ?? `Company ${t.sale.company_id}`}</div>
-                      <span className={`mt-1 inline-flex rounded-full px-2 py-1 text-[11px] font-semibold leading-none ${statusBadge(t.sale.status)}`}>
-                        {t.sale.status ?? "Unknown"}
-                      </span>
-                    </td>
+                    {showCompanyColumn ? (
+                      <td className="px-3 py-2 align-top">
+                        <div className="font-medium">{t.sale.company_name ?? `Company ${t.sale.company_id}`}</div>
+                      </td>
+                    ) : null}
                     <td className="px-3 py-2 align-top">
                       <div className="text-sm">{itemSummary || "—"}</div>
                       {remaining ? <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">+{remaining} more</div> : null}
-                      <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{t.sale.payment_type ?? "—"}</div>
+                      {t.sale.external_reference ? (
+                        <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Ref {t.sale.external_reference}</div>
+                      ) : null}
                     </td>
                     <td className="px-3 py-2 text-right align-top tabular-nums">{money(toNumber(t.sale.final_amount))}</td>
                   </tr>
