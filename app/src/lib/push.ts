@@ -8,6 +8,12 @@ export type PushSetupResult =
   | { ok: true; token: string }
   | { ok: false; reason: string };
 
+type SaveTokenPayload = {
+  action: "save" | "delete";
+  token?: string;
+  name: string;
+};
+
 function getFirebaseConfigFromEnv() {
   const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
   const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
@@ -45,8 +51,25 @@ function getFirebaseMessaging(): Messaging {
   return messaging;
 }
 
-export async function enablePushNotifications(userName: string): Promise<PushSetupResult> {
-  if (!userName.trim()) return { ok: false, reason: "Missing user name" };
+async function saveTokenToBackend(payload: SaveTokenPayload): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const saveResponse = await fetch(`${appConfig.apiBaseUrl}/save-token.php`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  if (!saveResponse.ok) {
+    return { ok: false, reason: `Token save failed (${saveResponse.status})` };
+  }
+  return { ok: true };
+}
+
+export async function enablePushNotifications({
+  userId,
+}: {
+  userId: string;
+}): Promise<PushSetupResult> {
+  if (!userId.trim()) return { ok: false, reason: "Missing user id" };
 
   if (!(await isSupported())) {
     return { ok: false, reason: "Push not supported in this browser" };
@@ -70,17 +93,17 @@ export async function enablePushNotifications(userName: string): Promise<PushSet
 
   if (!token) return { ok: false, reason: "No FCM token returned" };
 
-  // Save token to backend (CORS is allowed on the legacy endpoint)
-  const saveResponse = await fetch(`${appConfig.apiBaseUrl}/save-token.php`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "save", token, name: userName })
+  const saved = await saveTokenToBackend({
+    action: "save",
+    token,
+    name: userId
   });
-
-  if (!saveResponse.ok) {
-    return { ok: false, reason: `Token save failed (${saveResponse.status})` };
-  }
+  if (!saved.ok) return { ok: false, reason: saved.reason };
 
   return { ok: true, token };
 }
 
+export async function disablePushNotifications({ userId }: { userId: string }): Promise<{ ok: true } | { ok: false; reason: string }> {
+  if (!userId.trim()) return { ok: false, reason: "Missing user id" };
+  return saveTokenToBackend({ action: "delete", name: userId });
+}

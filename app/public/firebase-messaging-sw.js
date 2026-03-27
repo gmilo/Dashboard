@@ -5,11 +5,11 @@ importScripts("https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"
 importScripts("https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js");
 
 firebase.initializeApp({
-  "apiKey": "REPLACE_ME",
-  "authDomain": "REPLACE_ME",
-  "projectId": "REPLACE_ME",
-  "storageBucket": "REPLACE_ME",
-  "messagingSenderId": "REPLACE_ME",
-  "appId": "REPLACE_ME"
+  "apiKey": "AIzaSyALTusSjcRsQxz7xcn48fEiMISdBJ6pDek",
+  "authDomain": "milo-app-7ffa1.firebaseapp.com",
+  "projectId": "milo-app-7ffa1",
+  "storageBucket": "milo-app-7ffa1.firebasestorage.app",
+  "messagingSenderId": "108699561198",
+  "appId": "1:108699561198:web:cffbb50283f2221771d7ff"
 });
 firebase.messaging();

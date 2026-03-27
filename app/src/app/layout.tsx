@@ -7,8 +7,7 @@ import { Providers } from "@/components/providers";
 export const metadata = {
   title: "Milo Dashboard",
   description: "Mobile-first dashboard PWA",
-  manifest: "/manifest.webmanifest",
-  themeColor: "#0f172a"
+  manifest: "/manifest.webmanifest"
 };
 
 export const viewport = {
@@ -16,7 +15,8 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  viewportFit: "cover"
+  viewportFit: "cover",
+  themeColor: "#0f172a"
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
