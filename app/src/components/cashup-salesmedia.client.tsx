@@ -33,6 +33,7 @@ type SalesMediaResponse = {
 
 type CashupEntry = {
   company_id: number;
+  company_name?: string;
   type: "cashin" | "cashup";
   by?: string | null;
   avatar?: string | null;
@@ -92,7 +93,7 @@ export function CashupSalesMedia({ todayISO }: { todayISO: string }) {
     { revalidateOnFocus: false }
   );
 
-  if (isLoading) {
+  if (isLoading && entriesLoading) {
     return (
       <div className="space-y-4">
         <div className="h-10 animate-pulse rounded-xl bg-slate-200/40 dark:bg-slate-800/40" />
@@ -102,13 +103,26 @@ export function CashupSalesMedia({ todayISO }: { todayISO: string }) {
     );
   }
 
-  if (error) {
+  if (error && entriesError) {
     return (
       <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-100">
-        Failed to load cashup: {error.message}
+        Failed to load cashup: {(error as any)?.message ?? "Unknown error"}
       </div>
     );
   }
+
+  const salesStores = data?.stores ?? [];
+  const entriesByCompany = entries?.entriesByCompany ?? {};
+  const mergedIds = Array.from(
+    new Set<number>([
+      ...salesStores.map((s) => s.company_id),
+      ...Object.keys(entriesByCompany)
+        .map((k) => Number(k))
+        .filter((n) => Number.isFinite(n))
+    ])
+  );
+
+  const assignedCompanyCount = Math.max(data?.assignedCompanyCount ?? 0, entries?.assignedCompanyCount ?? 0);
 
   return (
     <div className="space-y-4">
@@ -121,92 +135,120 @@ export function CashupSalesMedia({ todayISO }: { todayISO: string }) {
         />
       </section>
 
-      {!data?.stores?.length ? (
-        (data?.assignedCompanyCount ?? 0) > 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            No cashup data found for {date}.
-          </div>
-        ) : (
-          <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            You haven&apos;t been assigned to a company yet. Please contact an administrator.
-          </div>
-        )
+      {error && !salesStores.length ? (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-100">
+          Payment totals failed to load: {(error as any)?.message ?? "Unknown error"}
+        </div>
+      ) : null}
+
+      {entriesError && !Object.keys(entriesByCompany).length ? (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-100">
+          CashIn/CashUp failed to load: {(entriesError as any)?.message ?? "Unknown error"}
+        </div>
+      ) : null}
+
+      {!assignedCompanyCount ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          You haven&apos;t been assigned to a company yet. Please contact an administrator.
+        </div>
+      ) : !mergedIds.length ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          No cashup data found for {date}.
+        </div>
       ) : (
         <>
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="text-xs text-slate-500 dark:text-slate-400">All stores</div>
-            <div className="mt-2 flex items-end justify-between gap-3">
-              <div className="text-sm font-semibold">Total</div>
-              <div className="text-right">
-                <div className="text-sm font-semibold">{money(data?.totals?.final ?? 0)}</div>
-                {(data?.totals?.refunds ?? 0) ? (
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Refunds {money(-Math.abs(data?.totals?.refunds ?? 0))}</div>
-                ) : null}
-                <div className="text-xs text-slate-500 dark:text-slate-400">
-                  Discount {money(-Math.abs(data?.totals?.discount ?? 0))}
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {data.stores.map((store) => (
-            <section key={store.company_id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold">{store.name}</div>
-                  <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{date}</div>
-                </div>
+          {data?.stores?.length ? (
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="text-xs text-slate-500 dark:text-slate-400">All stores</div>
+              <div className="mt-2 flex items-end justify-between gap-3">
+                <div className="text-sm font-semibold">Total</div>
                 <div className="text-right">
-                  <div className="text-sm font-semibold">{money(store.totalAmount)}</div>
-                  {(store.refunds ?? 0) ? (
-                    <div className="text-xs text-slate-500 dark:text-slate-400">Refunds {money(-Math.abs(store.refunds ?? 0))}</div>
+                  <div className="text-sm font-semibold">{money(data?.totals?.final ?? 0)}</div>
+                  {(data?.totals?.refunds ?? 0) ? (
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Refunds {money(-Math.abs(data?.totals?.refunds ?? 0))}</div>
                   ) : null}
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    Discount {money(-Math.abs(data?.totals?.discount ?? 0))}
+                  </div>
                 </div>
-              </div>
-
-              <CashupEntryWidget
-                entry={entries?.entriesByCompany?.[String(store.company_id)]}
-                loading={entriesLoading}
-                errorMessage={entriesError instanceof Error ? entriesError.message : undefined}
-                onSelect={(label, e) => setSelected({ storeName: store.name, entry: e, label })}
-              />
-
-              <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
-                    <tr>
-                      <th className="px-3 py-2 text-left font-medium">Method</th>
-                      <th className="px-3 py-2 text-right font-medium">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {store.rows.map((r) => {
-                      const isTotal = r.method.trim().toLowerCase() === "total";
-                      const isDiscount = r.method.trim().toLowerCase() === "discount";
-                      const isRefund = r.method.trim().toLowerCase() === "refunds";
-                      const label =
-                        r.countValue && r.countValue > 0 && !isTotal && !isDiscount && !isRefund
-                          ? `${r.method} (${r.countValue} txns)`
-                          : r.method;
-                      return (
-                        <tr
-                          key={`${store.company_id}-${r.method}`}
-                          className={[
-                            "border-t border-slate-200 dark:border-slate-800",
-                            isTotal ? "bg-slate-50 font-semibold dark:bg-slate-950/50" : "",
-                            isDiscount ? "text-rose-700 dark:text-rose-300" : ""
-                          ].join(" ")}
-                        >
-                          <td className="px-3 py-2">{label}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{money(r.amountValue)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
               </div>
             </section>
-          ))}
+          ) : null}
+
+          {mergedIds.map((companyId) => {
+            const store = salesStores.find((s) => s.company_id === companyId);
+            const entryBlock = entriesByCompany[String(companyId)];
+            const name =
+              store?.name ||
+              entryBlock?.cashin?.company_name ||
+              entryBlock?.cashup?.company_name ||
+              `Company ${companyId}`;
+
+            return (
+              <section key={companyId} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold">{name}</div>
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{date}</div>
+                  </div>
+                  {store ? (
+                    <div className="text-right">
+                      <div className="text-sm font-semibold">{money(store.totalAmount)}</div>
+                      {(store.refunds ?? 0) ? (
+                        <div className="text-xs text-slate-500 dark:text-slate-400">Refunds {money(-Math.abs(store.refunds ?? 0))}</div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+
+                <CashupEntryWidget
+                  entry={entryBlock}
+                  loading={entriesLoading}
+                  errorMessage={entriesError instanceof Error ? entriesError.message : undefined}
+                  onSelect={(label, e) => setSelected({ storeName: name, entry: e, label })}
+                />
+
+                <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
+                  {store?.rows?.length ? (
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-medium">Method</th>
+                          <th className="px-3 py-2 text-right font-medium">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {store.rows.map((r) => {
+                          const isTotal = r.method.trim().toLowerCase() === "total";
+                          const isDiscount = r.method.trim().toLowerCase() === "discount";
+                          const isRefund = r.method.trim().toLowerCase() === "refunds";
+                          const labelOut =
+                            r.countValue && r.countValue > 0 && !isTotal && !isDiscount && !isRefund
+                              ? `${r.method} (${r.countValue} txns)`
+                              : r.method;
+                          return (
+                            <tr
+                              key={`${companyId}-${r.method}`}
+                              className={[
+                                "border-t border-slate-200 dark:border-slate-800",
+                                isTotal ? "bg-slate-50 font-semibold dark:bg-slate-950/50" : "",
+                                isDiscount ? "text-rose-700 dark:text-rose-300" : ""
+                              ].join(" ")}
+                            >
+                              <td className="px-3 py-2">{labelOut}</td>
+                              <td className="px-3 py-2 text-right tabular-nums">{money(r.amountValue)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="p-3 text-xs text-slate-500 dark:text-slate-400">No payment totals found for this date.</div>
+                  )}
+                </div>
+              </section>
+            );
+          })}
         </>
       )}
 

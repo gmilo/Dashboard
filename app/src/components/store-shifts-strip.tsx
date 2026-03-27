@@ -1,9 +1,10 @@
 "use client";
 
 import clsx from "clsx";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Coffee, X } from "lucide-react";
 import { formatAUD } from "@/lib/format";
+import useSWR from "swr";
 
 export type ShiftPerson = {
   employeeId: number;
@@ -25,12 +26,16 @@ function initials(name: string): string {
 }
 
 export function StoreShiftsStrip({
+  companyId,
+  date,
   totalCost,
   activeNow,
   scheduled,
   worked,
   scheduledCount
 }: {
+  companyId: number;
+  date: string;
   totalCost: number;
   activeNow: ShiftPerson[];
   scheduled: ShiftPerson[];
@@ -38,6 +43,7 @@ export function StoreShiftsStrip({
   scheduledCount: number;
 }) {
   const [selected, setSelected] = useState<ShiftPerson | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
   const shown = activeNow.slice(0, 8);
   const more = activeNow.length - shown.length;
@@ -48,6 +54,45 @@ export function StoreShiftsStrip({
 
   const hasAny = activeNow.length > 0 || scheduled.length > 0 || worked.length > 0;
   const modalTitle = useMemo(() => (selected ? selected.name : ""), [selected]);
+  const employeeId = selected?.employeeId ?? null;
+
+  useEffect(() => {
+    if (!selected) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const t = window.setTimeout(() => panelRef.current?.focus(), 0);
+    return () => {
+      window.clearTimeout(t);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [selected]);
+
+  useEffect(() => {
+    if (!selected) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelected(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selected]);
+
+  const invKey = employeeId ? (["invlogs-employee", companyId, employeeId, date] as const) : null;
+  const { data: invData, error: invError, isLoading: invLoading } = useSWR<{ success: boolean; data?: any[]; error?: string }>(
+    invKey,
+    async () => {
+      const url = new URL("/api/inventory/logs", window.location.origin);
+      url.searchParams.set("company_id", String(companyId));
+      url.searchParams.set("employee_id", String(employeeId));
+      url.searchParams.set("date_from", date);
+      url.searchParams.set("date_to", date);
+      url.searchParams.set("limit", "50");
+      const res = await fetch(url.toString());
+      const json = (await res.json()) as any;
+      if (!res.ok || !json.success) throw new Error(json.error ?? "Load failed");
+      return json;
+    },
+    { revalidateOnFocus: false }
+  );
 
   return (
     <div className="mt-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-950/40">
@@ -215,7 +260,9 @@ export function StoreShiftsStrip({
           onClick={() => setSelected(null)}
         >
           <div
-            className="w-full max-w-md rounded-2xl bg-white p-4 shadow-xl dark:bg-slate-900"
+            ref={panelRef}
+            tabIndex={-1}
+            className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl bg-white p-4 shadow-xl outline-none dark:bg-slate-900"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3">
@@ -266,9 +313,77 @@ export function StoreShiftsStrip({
                 </div>
               </div>
             </div>
+
+            <div className="mt-4">
+              <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">Inventory logs</div>
+              {invLoading ? (
+                <div className="mt-2 space-y-2">
+                  <div className="h-12 animate-pulse rounded-xl bg-slate-200/40 dark:bg-slate-800/40" />
+                  <div className="h-12 animate-pulse rounded-xl bg-slate-200/40 dark:bg-slate-800/40" />
+                </div>
+              ) : invError ? (
+                <div className="mt-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-900 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-100">
+                  Failed to load inventory logs: {(invError as any)?.message ?? "Unknown error"}
+                </div>
+              ) : !(invData?.data ?? []).length ? (
+                <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">No inventory logs for this employee on {date}.</div>
+              ) : (
+                <div className="mt-2 space-y-2">
+                  {(invData?.data ?? []).slice(0, 8).map((log: any) => {
+                    const inv = log.inventory ?? {};
+                    const metaQty = parseMetaQty(log.meta_data);
+                    const type = String(log.type ?? "");
+                    const isAdd = type.toLowerCase().includes("add");
+                    const qtyText = `${isAdd ? "+" : "-"}${metaQty}`;
+                    return (
+                      <div key={String(log.id ?? `${log.created_at}-${inv.name}-${type}`)} className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold">{inv.name ?? "Inventory"}</div>
+                            <div className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">{String(log.description ?? "")}</div>
+                            <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">{fmtLogTime(String(log.created_at ?? ""))}</div>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <div className={clsx("text-sm font-semibold tabular-nums", isAdd ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300")}>
+                              {qtyText}
+                            </div>
+                            <div className={clsx("mt-1 inline-flex rounded-full px-2 py-1 text-[11px] font-semibold", isAdd ? "bg-emerald-600/10 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300" : "bg-rose-600/10 text-rose-800 dark:bg-rose-500/10 dark:text-rose-200")}>
+                              {type || "—"}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {(invData?.data ?? []).length > 8 ? (
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Showing 8 of {(invData?.data ?? []).length} logs</div>
+                  ) : null}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       ) : null}
     </div>
   );
+}
+
+function parseMetaQty(metaData: unknown): number {
+  if (!metaData) return 0;
+  try {
+    const parsed = typeof metaData === "string" ? JSON.parse(metaData) : metaData;
+    const q = (parsed as any)?.quantity;
+    const n = typeof q === "number" ? q : Number(String(q ?? ""));
+    return Number.isFinite(n) ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function fmtLogTime(s: string) {
+  if (!s) return "";
+  const cleaned = s.split(".")[0] ?? s;
+  const dt = new Date(cleaned.replace(" ", "T") + "Z");
+  if (!Number.isFinite(dt.getTime())) return s;
+  return new Intl.DateTimeFormat("en-AU", { hour: "2-digit", minute: "2-digit" }).format(dt);
 }

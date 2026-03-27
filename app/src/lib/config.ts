@@ -4,6 +4,7 @@ export const config = {
   ajaxBaseUrl:
     process.env.NEXT_PUBLIC_AJAX_BASE_URL ?? "https://apps.dashify.com.au/milo/ajax",
   apiBaseUrl:
-    process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://apps.dashify.com.au/milo/api"
+    process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://apps.dashify.com.au/milo/api",
+  publicApiBaseUrl:
+    process.env.NEXT_PUBLIC_PUBLIC_API_BASE_URL ?? "https://api.dashify.com.au"
 };
-

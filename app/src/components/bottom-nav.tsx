@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, CreditCard, CupSoda, Wallet, Settings } from "lucide-react";
+import { BarChart3, CreditCard, CupSoda, Wallet, Boxes } from "lucide-react";
 import clsx from "clsx";
 
 const nav = [
@@ -10,7 +10,7 @@ const nav = [
   { href: "/transactions", label: "Transactions", icon: CreditCard },
   { href: "/products", label: "Products", icon: CupSoda },
   { href: "/cashup", label: "Cashup", icon: Wallet },
-  { href: "/settings", label: "Settings", icon: Settings }
+  { href: "/inventory", label: "Inventory", icon: Boxes }
 ];
 
 export function BottomNav() {

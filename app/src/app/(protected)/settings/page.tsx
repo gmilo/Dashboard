@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { PageShell } from "@/components/page-shell";
-import { config } from "@/lib/config";
 import { disablePushNotifications, enablePushNotifications } from "@/lib/push";
 import { useUser } from "@auth0/nextjs-auth0/client";
 
@@ -113,15 +112,6 @@ export default function SettingsPage() {
             Disable push notifications
           </button>
           {pushStatus ? <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">{pushStatus}</div> : null}
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white p-4 text-xs shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="font-semibold">Backend</div>
-          <div className="mt-2 space-y-1 text-slate-600 dark:text-slate-300">
-            <div>data: {config.dataBaseUrl}</div>
-            <div>ajax: {config.ajaxBaseUrl}</div>
-            <div>api: {config.apiBaseUrl}</div>
-          </div>
         </div>
       </div>
     </PageShell>

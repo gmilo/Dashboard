@@ -61,6 +61,8 @@ export function StoreHourlyCard({
 
       {shifts ? (
         <StoreShiftsStrip
+          companyId={store.id}
+          date={date}
           totalCost={shifts.totalCost}
           activeNow={shifts.activeNow}
           scheduled={shifts.scheduled ?? []}
