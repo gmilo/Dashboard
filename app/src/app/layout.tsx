@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { SWRegister } from "@/components/sw-register";
 import { Providers } from "@/components/providers";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata = {
   title: "Milo Dashboard",
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <SWRegister />
           <Providers>{children}</Providers>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
