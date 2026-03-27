@@ -3,3 +3,5 @@ node_modules
 dist
 .env*
 
+# Generated at build time from env vars
+public/firebase-messaging-sw.js
