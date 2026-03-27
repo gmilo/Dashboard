@@ -20,3 +20,19 @@ export function addDaysISO(dateISO: string, deltaDays: number): string {
   return dt.toISOString().slice(0, 10);
 }
 
+export function startOfWeekISO(dateISO: string): string {
+  const [y, m, d] = dateISO.split("-").map((n) => Number(n));
+  const dt = new Date(Date.UTC(y, (m ?? 1) - 1, d ?? 1));
+  // Week starts Monday.
+  const day = dt.getUTCDay(); // 0..6 (Sun..Sat)
+  const deltaToMonday = (day + 6) % 7;
+  return addDaysISO(dateISO, -deltaToMonday);
+}
+
+export function startOfMonthISO(dateISO: string): string {
+  const [y, m] = dateISO.split("-").map((n) => Number(n));
+  const yy = Number.isFinite(y) ? y : 1970;
+  const mm = Number.isFinite(m) ? m : 1;
+  const dt = new Date(Date.UTC(yy, mm - 1, 1));
+  return dt.toISOString().slice(0, 10);
+}
