@@ -64,6 +64,9 @@ export function StoreShiftsStrip({
           <span className="rounded-full bg-sky-600/10 px-2 py-1 text-[11px] font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
             Scheduled {scheduledCount}
           </span>
+          <span className="rounded-full bg-slate-600/10 px-2 py-1 text-[11px] font-semibold text-slate-700 dark:bg-slate-500/10 dark:text-slate-200">
+            Completed {worked.length}
+          </span>
         </div>
       </div>
 

@@ -3,7 +3,7 @@ import { BottomNav } from "@/components/bottom-nav";
 
 export function PageShell({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="mx-auto min-h-dvh max-w-md pb-20">
+    <div className="mx-auto min-h-dvh max-w-md pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
         <h1 className="text-base font-semibold">{title}</h1>
       </header>
@@ -12,4 +12,3 @@ export function PageShell({ title, children }: { title: string; children: ReactN
     </div>
   );
 }
-
