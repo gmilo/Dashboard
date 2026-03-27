@@ -49,16 +49,19 @@ export async function GET(request: Request) {
   const companyNameById = new Map(companies.map((c) => [c.id, c.name ?? `Company ${c.id}`]));
 
   const url = new URL(request.url);
-  const dateTo = url.searchParams.get("date_to")?.trim();
-  if (!dateTo) {
-    return NextResponse.json({ success: false, error: "Missing date_to" }, { status: 400 });
+  const dateFromParam = url.searchParams.get("date_from")?.trim();
+  const dateToParam = url.searchParams.get("date_to")?.trim();
+  const dateFrom = dateFromParam || dateToParam;
+  const dateTo = dateToParam || dateFromParam;
+  if (!dateFrom || !dateTo) {
+    return NextResponse.json({ success: false, error: "Missing date range" }, { status: 400 });
   }
 
   // If the user has no assigned companies, short-circuit.
   if (!allowedIds.size) {
     return NextResponse.json({
       success: true,
-      date_from: dateTo,
+      date_from: dateFrom,
       date_to: dateTo,
       assignedCompanyCount: 0,
       totals: { gross: 0, discount: 0, final: 0 },
@@ -67,7 +70,7 @@ export async function GET(request: Request) {
   }
 
   const upstreamUrl = new URL(`${config.dataBaseUrl}/dashify-sales.php`);
-  upstreamUrl.searchParams.set("date_from", dateTo);
+  upstreamUrl.searchParams.set("date_from", dateFrom);
   upstreamUrl.searchParams.set("date_to", dateTo);
 
   const upstream = await fetch(upstreamUrl, {
@@ -198,7 +201,7 @@ export async function GET(request: Request) {
   return NextResponse.json(
     {
       success: true,
-      date_from: dateTo,
+      date_from: dateFrom,
       date_to: dateTo,
       assignedCompanyCount: allowedIds.size,
       totals,

@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { startOfMonthISO, startOfWeekISO } from "@/lib/dates";
+import { addDaysISO, startOfMonthISO, startOfWeekISO } from "@/lib/dates";
 import { X } from "lucide-react";
+import { getGravatarUrl } from "@/lib/gravatar";
 
 type TransactionItem = {
   id?: number;
@@ -58,7 +59,7 @@ type TransactionsResponse = {
   error?: string;
 };
 
-type Preset = "today" | "week" | "month" | "custom";
+type Preset = "today" | "yesterday" | "week" | "month" | "custom";
 type StatusFilter = "" | "completed" | "not_completed";
 
 function toNumber(value: unknown): number {
@@ -85,7 +86,7 @@ function fmtWhen(s?: string | null, todayISO?: string) {
 
   const time = new Intl.DateTimeFormat("en-AU", { hour: "2-digit", minute: "2-digit" }).format(dt);
   if (todayISO && isoDay === todayISO) {
-    return { primary: time, secondary: "" };
+    return { primary: "Today", secondary: time };
   }
   const date = new Intl.DateTimeFormat("en-AU", { day: "2-digit", month: "short" }).format(dt);
   return { primary: date, secondary: time };
@@ -115,17 +116,22 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
   const [companyId, setCompanyId] = useState<string>("");
   const [discountOnly, setDiscountOnly] = useState<boolean>(false);
   const [status, setStatus] = useState<StatusFilter>("");
+  const [paymentType, setPaymentType] = useState<string>("");
   const [visibleCount, setVisibleCount] = useState<number>(50);
   const [selected, setSelected] = useState<Transaction | null>(null);
 
   const range = useMemo(() => {
     if (preset === "today") return { from: todayISO, to: todayISO };
+    if (preset === "yesterday") {
+      const y = addDaysISO(todayISO, -1);
+      return { from: y, to: y };
+    }
     if (preset === "week") return { from: startOfWeekISO(todayISO), to: todayISO };
     if (preset === "month") return { from: startOfMonthISO(todayISO), to: todayISO };
     return { from: customFrom || todayISO, to: customTo || todayISO };
   }, [preset, todayISO, customFrom, customTo]);
 
-  const key = ["transactions", range.from, range.to, companyId, discountOnly ? "1" : "0", status] as const;
+  const key = ["transactions", range.from, range.to, companyId, discountOnly ? "1" : "0", status, paymentType] as const;
 
   const { data, error, isLoading } = useSWR<TransactionsResponse>(key, async () => {
     const url = new URL("/api/transactions", window.location.origin);
@@ -135,6 +141,7 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
     if (companyId) url.searchParams.set("company_id", companyId);
     if (discountOnly) url.searchParams.set("discount", "1");
     if (status) url.searchParams.set("status", status);
+    if (paymentType) url.searchParams.set("payment_type", paymentType);
     const res = await fetch(url.toString());
     const json = (await res.json()) as TransactionsResponse;
     if (!res.ok || !json.success) throw new Error(json.error ?? "Load failed");
@@ -143,6 +150,14 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
 
   const assignedCompanyCount = data?.assignedCompanyCount ?? 0;
   const companies = useMemo(() => [...(data?.companies ?? [])].sort((a, b) => a.name.localeCompare(b.name)), [data?.companies]);
+  const paymentTypes = useMemo(() => {
+    const map = data?.meta?.payment_types ?? {};
+    const rows = Object.entries(map)
+      .filter(([k]) => k && k.trim())
+      .map(([k, v]) => ({ key: k, count: v }))
+      .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
+    return rows;
+  }, [data?.meta?.payment_types]);
   const rows = data?.data ?? [];
   const sorted = useMemo(() => [...rows].sort((a, b) => (b.sale.id ?? 0) - (a.sale.id ?? 0)), [rows]);
   const visible = sorted.slice(0, visibleCount);
@@ -180,6 +195,7 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
               }}
             >
               <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
               <option value="week">This week</option>
               <option value="month">This month</option>
               <option value="custom">Custom range</option>
@@ -204,6 +220,21 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
           <div className="grid grid-cols-2 gap-2">
             <select
               className="w-full rounded-lg border border-slate-200 bg-transparent px-3 py-2 text-sm dark:border-slate-800"
+              value={paymentType}
+              onChange={(e) => {
+                setPaymentType(e.target.value);
+                setVisibleCount(50);
+              }}
+            >
+              <option value="">All payment types</option>
+              {paymentTypes.map((p) => (
+                <option key={p.key} value={p.key}>
+                  {p.key} ({p.count})
+                </option>
+              ))}
+            </select>
+            <select
+              className="w-full rounded-lg border border-slate-200 bg-transparent px-3 py-2 text-sm dark:border-slate-800"
               value={status}
               onChange={(e) => {
                 setStatus(e.target.value as StatusFilter);
@@ -214,18 +245,19 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
               <option value="completed">Completed</option>
               <option value="not_completed">Not completed</option>
             </select>
-            <label className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800">
-              <span>Discount only</span>
-              <input
-                type="checkbox"
-                checked={discountOnly}
-                onChange={(e) => {
-                  setDiscountOnly(e.target.checked);
-                  setVisibleCount(50);
-                }}
-              />
-            </label>
           </div>
+
+          <label className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800">
+            <span>Discount only</span>
+            <input
+              type="checkbox"
+              checked={discountOnly}
+              onChange={(e) => {
+                setDiscountOnly(e.target.checked);
+                setVisibleCount(50);
+              }}
+            />
+          </label>
 
           {preset === "custom" ? (
             <div className="grid grid-cols-2 gap-2">
@@ -261,13 +293,16 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
           You haven&apos;t been assigned to a company yet. Please contact an administrator.
         </div>
       ) : sorted.length ? (
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <table className="w-full text-sm">
+        <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <table className="min-w-[860px] w-full text-sm">
             <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
               <tr>
                 <th className="px-3 py-2 text-left font-medium">When</th>
                 {showCompanyColumn ? <th className="px-3 py-2 text-left font-medium">Company</th> : null}
                 <th className="px-3 py-2 text-left font-medium">Items</th>
+                <th className="px-3 py-2 text-left font-medium">Member</th>
+                <th className="px-3 py-2 text-left font-medium">Payment</th>
+                <th className="px-3 py-2 text-left font-medium">Status</th>
                 <th className="px-3 py-2 text-right font-medium">Final</th>
               </tr>
             </thead>
@@ -278,6 +313,12 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
                 const itemSummary = itemNames.slice(0, 2).join(", ");
                 const remaining = Math.max(0, itemNames.length - 2);
                 const when = fmtWhen(t.sale.sale_date, todayISO);
+                const member = t.sale.member ?? null;
+                const memberEmail = typeof member?.email === "string" ? member.email : "";
+                const memberName = [typeof member?.given_names === "string" ? member.given_names : "", typeof member?.surname === "string" ? member.surname : ""]
+                  .join(" ")
+                  .trim();
+                const memberNo = typeof member?.member_no === "string" || typeof member?.member_no === "number" ? String(member.member_no) : "";
                 return (
                   <tr
                     key={t.sale.id}
@@ -285,20 +326,10 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
                     onClick={() => setSelected(t)}
                   >
                     <td className="px-3 py-2 align-top">
-                      <div className="font-medium">
-                        {when.primary}
-                        {when.secondary ? <span className="ml-2 text-xs font-medium text-slate-500 dark:text-slate-400">{when.secondary}</span> : null}
-                      </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-2">
-                        <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold leading-none ${statusBadge(t.sale.status)}`}>
-                          {t.sale.status ?? "Unknown"}
-                        </span>
-                        {t.sale.payment_type ? (
-                          <span className="inline-flex rounded-full bg-slate-600/10 px-2 py-1 text-[11px] font-semibold text-slate-700 dark:bg-slate-500/10 dark:text-slate-200">
-                            {t.sale.payment_type}
-                          </span>
-                        ) : null}
-                      </div>
+                      <div className="font-medium">{when.primary}</div>
+                      {when.secondary ? (
+                        <div className="mt-0.5 whitespace-nowrap text-xs font-medium text-slate-500 dark:text-slate-400">{when.secondary}</div>
+                      ) : null}
                     </td>
                     {showCompanyColumn ? (
                       <td className="px-3 py-2 align-top">
@@ -308,9 +339,36 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
                     <td className="px-3 py-2 align-top">
                       <div className="text-sm">{itemSummary || "—"}</div>
                       {remaining ? <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">+{remaining} more</div> : null}
-                      {t.sale.external_reference ? (
-                        <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Ref {t.sale.external_reference}</div>
-                      ) : null}
+                    </td>
+                    <td className="px-3 py-2 align-top">
+                      {member ? (
+                        <div className="flex min-w-0 items-center gap-2">
+                          <div className="h-8 w-8 overflow-hidden rounded-full bg-slate-200/60 dark:bg-slate-800/60">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={getGravatarUrl(memberEmail, 40)} alt={memberName || memberEmail || "Member"} className="h-8 w-8 object-cover" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-medium">{memberName || memberEmail || "Member"}</div>
+                            {memberNo ? <div className="whitespace-nowrap text-xs text-slate-500 dark:text-slate-400">#{memberNo}</div> : null}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-500 dark:text-slate-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 align-top">
+                      {t.sale.payment_type ? (
+                        <span className="inline-flex max-w-[180px] whitespace-nowrap rounded-full bg-slate-600/10 px-2 py-1 text-[11px] font-semibold text-slate-700 dark:bg-slate-500/10 dark:text-slate-200">
+                          <span className="truncate">{t.sale.payment_type}</span>
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-500 dark:text-slate-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 align-top">
+                      <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold leading-none ${statusBadge(t.sale.status)}`}>
+                        {t.sale.status ?? "Unknown"}
+                      </span>
                     </td>
                     <td className="px-3 py-2 text-right align-top tabular-nums">{money(toNumber(t.sale.final_amount))}</td>
                   </tr>
@@ -344,10 +402,40 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
 function TransactionModal({ tx, onClose }: { tx: Transaction; onClose: () => void }) {
   const sale = tx.sale;
   const items = tx.items ?? [];
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const member = sale.member ?? null;
+  const memberEmail = typeof member?.email === "string" ? member.email : "";
+  const memberName = [typeof member?.given_names === "string" ? member.given_names : "", typeof member?.surname === "string" ? member.surname : ""]
+    .join(" ")
+    .trim();
+  const memberNo = typeof member?.member_no === "string" || typeof member?.member_no === "number" ? String(member.member_no) : "";
+
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const t = window.setTimeout(() => panelRef.current?.focus(), 0);
+    return () => {
+      window.clearTimeout(t);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
 
   return (
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 p-3 sm:items-center" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-xl dark:bg-slate-900" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl bg-white p-4 shadow-xl outline-none dark:bg-slate-900"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold">
@@ -378,6 +466,26 @@ function TransactionModal({ tx, onClose }: { tx: Transaction; onClose: () => voi
             </span>
           ) : null}
         </div>
+
+        {member ? (
+          <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950/40">
+            <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Member</div>
+            <div className="mt-2 flex items-center gap-3">
+              <div className="h-10 w-10 overflow-hidden rounded-full bg-slate-200/60 dark:bg-slate-800/60">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={getGravatarUrl(memberEmail, 80)} alt={memberName || memberEmail || "Member"} className="h-10 w-10 object-cover" />
+              </div>
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold">{memberName || memberEmail || "Member"}</div>
+                <div className="mt-0.5 flex flex-wrap gap-x-2 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
+                  {memberNo ? <span className="whitespace-nowrap">#{memberNo}</span> : null}
+                  {memberEmail ? <span className="truncate">{memberEmail}</span> : null}
+                  {typeof member?.mobile === "string" && member.mobile ? <span className="whitespace-nowrap">{member.mobile}</span> : null}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">
           <Metric label="Total" value={money(toNumber(sale.total_amount))} />

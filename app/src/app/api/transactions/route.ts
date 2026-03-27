@@ -122,6 +122,7 @@ export async function GET(request: Request) {
   const dateTo = url.searchParams.get("date_to")?.trim() ?? "";
   const discount = url.searchParams.get("discount")?.trim() ?? "";
   const statusFilter = (url.searchParams.get("status") ?? "").trim().toLowerCase();
+  const paymentTypeFilterRaw = (url.searchParams.get("payment_type") ?? "").trim();
   const companyIdRaw = (url.searchParams.get("company_id") ?? "").trim();
   const limitRaw = (url.searchParams.get("limit") ?? "0").trim();
   const limit = String(Math.max(0, Number(limitRaw) || 0));
@@ -179,7 +180,14 @@ export async function GET(request: Request) {
     filtered = filtered.filter((t) => (t.sale.status ?? "").toLowerCase() !== "completed");
   }
 
+  // Meta should reflect current scope (date/company/discount/status), but not be constrained by payment_type so the UI can still show options.
   const meta = collectMeta(filtered);
+
+  const paymentTypeFilter = paymentTypeFilterRaw.toLowerCase();
+  if (paymentTypeFilter) {
+    filtered = filtered.filter((t) => String(t.sale.payment_type ?? "").toLowerCase() === paymentTypeFilter);
+  }
+
   const summary = buildSummary(filtered);
 
   return NextResponse.json(
@@ -193,6 +201,7 @@ export async function GET(request: Request) {
         company_id: companyIdRaw ? Number(companyIdRaw) : null,
         discount: discount === "1" || discount.toLowerCase() === "true" ? 1 : null,
         status: statusFilter || null,
+        payment_type: paymentTypeFilterRaw || null,
         limit: Number(limit)
       },
       meta,
@@ -202,4 +211,3 @@ export async function GET(request: Request) {
     { headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" } }
   );
 }
-

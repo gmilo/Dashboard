@@ -8,7 +8,7 @@ import clsx from "clsx";
 const nav = [
   { href: "/", label: "Dashboard", icon: BarChart3 },
   { href: "/transactions", label: "Transactions", icon: CreditCard },
-  { href: "/drinks", label: "Drinks", icon: CupSoda },
+  { href: "/products", label: "Products", icon: CupSoda },
   { href: "/cashup", label: "Cashup", icon: Wallet },
   { href: "/settings", label: "Settings", icon: Settings }
 ];
@@ -20,7 +20,9 @@ export function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
       <div className="mx-auto flex max-w-md items-stretch justify-between px-2 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] pt-1">
         {nav.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href;
+          const active =
+            pathname === href ||
+            (href === "/products" && (pathname.startsWith("/products") || pathname.startsWith("/drinks") || pathname.startsWith("/toppings")));
           return (
             <Link
               key={href}

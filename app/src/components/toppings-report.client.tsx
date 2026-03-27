@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { startOfMonthISO, startOfWeekISO } from "@/lib/dates";
+import { addDaysISO, startOfMonthISO, startOfWeekISO } from "@/lib/dates";
 
 type ToppingRow = {
   company_id: number;
@@ -24,7 +24,7 @@ type ToppingsResponse = {
   error?: string;
 };
 
-type Preset = "today" | "week" | "month" | "custom";
+type Preset = "today" | "yesterday" | "week" | "month" | "custom";
 
 function money(n: number) {
   return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(n);
@@ -39,6 +39,10 @@ export function ToppingsReport({ todayISO }: { todayISO: string }) {
 
   const range = useMemo(() => {
     if (preset === "today") return { from: todayISO, to: todayISO };
+    if (preset === "yesterday") {
+      const y = addDaysISO(todayISO, -1);
+      return { from: y, to: y };
+    }
     if (preset === "week") return { from: startOfWeekISO(todayISO), to: todayISO };
     if (preset === "month") return { from: startOfMonthISO(todayISO), to: todayISO };
     return { from: customFrom || todayISO, to: customTo || todayISO };
@@ -96,6 +100,7 @@ export function ToppingsReport({ todayISO }: { todayISO: string }) {
               }}
             >
               <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
               <option value="week">This week</option>
               <option value="month">This month</option>
               <option value="custom">Custom range</option>
@@ -202,4 +207,3 @@ export function ToppingsReport({ todayISO }: { todayISO: string }) {
     </div>
   );
 }
-

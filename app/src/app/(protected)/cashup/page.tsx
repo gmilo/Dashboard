@@ -6,7 +6,7 @@ export default function CashupPage() {
   const todayISO = todayInSydneyISO();
   return (
     <PageShell title="Cashup">
-      <CashupSalesMedia initialDateTo={todayISO} />
+      <CashupSalesMedia todayISO={todayISO} />
     </PageShell>
   );
 }

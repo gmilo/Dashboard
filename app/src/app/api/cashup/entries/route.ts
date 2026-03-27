@@ -16,11 +16,15 @@ type CashupEntry = {
   by?: string | null;
   avatar?: string | null;
   photos: string[];
+  cash?: { coins?: Record<string, any>; bills?: Record<string, any> } | null;
+  cash_drop?: { coins?: Record<string, any>; bills?: Record<string, any> } | null;
   total?: number | null;
   actual?: number | null;
   system?: number | null;
   variance?: number | null;
   created_at?: string | null;
+  updated_at?: string | null;
+  id?: number | null;
 };
 
 function parseMoney(input: unknown): number | null {
@@ -49,6 +53,50 @@ function normalizeType(input: unknown): "cashin" | "cashup" | null {
   if (s.includes("cashin") || s === "in" || s === "cash_in") return "cashin";
   if (s.includes("cashup") || s === "up" || s === "cash_up") return "cashup";
   return null;
+}
+
+type MoneyRow = { quantity?: number | null; total?: number | null; rolls?: number | null };
+type MoneyBreakdown = { coins?: Record<string, MoneyRow>; bills?: Record<string, MoneyRow> };
+
+function normalizeMoneyRow(value: unknown): MoneyRow | null {
+  if (!value || typeof value !== "object") return null;
+  const v = value as Record<string, unknown>;
+  const quantity = toNumber(v.quantity);
+  const total = parseMoney(v.total);
+  const rolls = toNumber(v.rolls);
+  return {
+    quantity: quantity === null ? null : quantity,
+    total,
+    rolls: rolls === null ? null : rolls
+  };
+}
+
+function normalizeBreakdown(value: unknown): MoneyBreakdown | null {
+  if (!value || typeof value !== "object") return null;
+  const v = value as Record<string, unknown>;
+  const out: MoneyBreakdown = {};
+
+  const coins = v.coins;
+  if (coins && typeof coins === "object" && !Array.isArray(coins)) {
+    const map: Record<string, MoneyRow> = {};
+    for (const [denom, row] of Object.entries(coins as Record<string, unknown>)) {
+      const normalized = normalizeMoneyRow(row);
+      if (normalized) map[denom] = normalized;
+    }
+    if (Object.keys(map).length) out.coins = map;
+  }
+
+  const bills = v.bills;
+  if (bills && typeof bills === "object" && !Array.isArray(bills)) {
+    const map: Record<string, MoneyRow> = {};
+    for (const [denom, row] of Object.entries(bills as Record<string, unknown>)) {
+      const normalized = normalizeMoneyRow(row);
+      if (normalized) map[denom] = normalized;
+    }
+    if (Object.keys(map).length) out.bills = map;
+  }
+
+  return out.coins || out.bills ? out : null;
 }
 
 function extractEntries(data: unknown, allowedCompanyIds: Set<number>, fallbackCompanyName: (id: number) => string): CashupEntry[] {
@@ -109,6 +157,20 @@ function extractEntries(data: unknown, allowedCompanyIds: Set<number>, fallbackC
             ? entry.createdAt
             : null;
 
+    const updatedAt =
+      typeof entry.updated_at === "string"
+        ? entry.updated_at
+        : typeof entry.updated === "string"
+          ? entry.updated
+          : typeof entry.updatedAt === "string"
+            ? entry.updatedAt
+            : null;
+
+    const id = toNumber(entry.id);
+
+    const cash = normalizeBreakdown(entry.data);
+    const cashDrop = normalizeBreakdown(entry.data_cash_drop);
+
     return {
       company_id: companyId,
       company_name: companyName,
@@ -116,11 +178,15 @@ function extractEntries(data: unknown, allowedCompanyIds: Set<number>, fallbackC
       by,
       avatar,
       photos: Array.from(new Set(photos)),
+      cash,
+      cash_drop: cashDrop,
       total,
       actual,
       system,
       variance,
-      created_at: createdAt
+      created_at: createdAt,
+      updated_at: updatedAt,
+      id: id === null ? null : id
     } satisfies CashupEntry;
   };
 
@@ -128,6 +194,18 @@ function extractEntries(data: unknown, allowedCompanyIds: Set<number>, fallbackC
     const cid = toNumber(company.company_id);
     if (cid === null || !allowedCompanyIds.has(cid)) return;
     const cname = (typeof company.company_name === "string" && company.company_name.trim()) || fallbackCompanyName(cid);
+
+    const meta = company.meta && typeof company.meta === "object" ? (company.meta as Record<string, unknown>) : null;
+    const cashinMeta = meta ? parseMoney(meta.cashin ?? meta.cash_in ?? meta.cashIn ?? meta.cashin_total ?? meta.cash_in_total) : null;
+
+    const withDerivedActual = (entry: CashupEntry) => {
+      if (entry.type === "cashup" && (entry.actual === null || entry.actual === undefined)) {
+        if (cashinMeta !== null && entry.total !== null && entry.total !== undefined) {
+          entry.actual = entry.total - cashinMeta;
+        }
+      }
+      return entry;
+    };
 
     const maybeArrays: Array<[unknown, unknown]> = [
       ["cashin", company.cashin],
@@ -148,7 +226,7 @@ function extractEntries(data: unknown, allowedCompanyIds: Set<number>, fallbackC
       if (!Array.isArray(val)) continue;
       for (const item of val) {
         if (!item || typeof item !== "object") continue;
-        out.push(normalizeEntry(item as Record<string, unknown>, cid, cname, t));
+        out.push(withDerivedActual(normalizeEntry(item as Record<string, unknown>, cid, cname, t)));
       }
     }
 
@@ -158,7 +236,7 @@ function extractEntries(data: unknown, allowedCompanyIds: Set<number>, fallbackC
         const t = normalizeType(k);
         if (!t) continue;
         if (!v || typeof v !== "object") continue;
-        out.push(normalizeEntry(v as Record<string, unknown>, cid, cname, t));
+        out.push(withDerivedActual(normalizeEntry(v as Record<string, unknown>, cid, cname, t)));
       }
     }
   };
@@ -169,7 +247,10 @@ function extractEntries(data: unknown, allowedCompanyIds: Set<number>, fallbackC
       const obj = item as Record<string, unknown>;
 
       // Company-grouped payload
-      if ("company_id" in obj && ("totals" in obj || "cashup" in obj || "cashin" in obj || "cashups" in obj || "cashins" in obj)) {
+      if (
+        "company_id" in obj &&
+        ("totals" in obj || "cashup" in obj || "cashin" in obj || "cashups" in obj || "cashins" in obj || "data" in obj)
+      ) {
         visitCompanyBlock(obj);
         continue;
       }

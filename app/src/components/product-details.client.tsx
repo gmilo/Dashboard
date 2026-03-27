@@ -90,7 +90,7 @@ export function ProductDetails({ id }: { id: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Link className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-slate-800" href="/drinks">
+        <Link className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-slate-800" href="/products">
           ← Back
         </Link>
         <select
@@ -167,4 +167,3 @@ function Metric({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-
