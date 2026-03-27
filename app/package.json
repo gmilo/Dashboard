@@ -1,0 +1,40 @@
+{
+  "name": "milo-dashboard-pwa",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "bootstrap:env": "node scripts/bootstrap-env.mjs",
+    "gen:fcm-sw": "node scripts/generate-firebase-sw.mjs",
+    "predev": "npm run gen:fcm-sw",
+    "prebuild": "npm run gen:fcm-sw",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "firebase": "^10.14.1",
+    "lucide-react": "^0.515.0",
+    "next": "^14.2.25",
+    "next-themes": "^0.3.0",
+    "react-apexcharts": "^1.7.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "apexcharts": "^4.0.0",
+    "swr": "^2.3.6",
+    "tailwind-merge": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "@types/react": "^18.3.14",
+    "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.25",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.8.2"
+  }
+}
