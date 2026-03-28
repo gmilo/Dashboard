@@ -9,8 +9,8 @@ const nav = [
   { href: "/", label: "Dashboard", icon: BarChart3 },
   { href: "/transactions", label: "Transactions", icon: CreditCard },
   { href: "/products", label: "Products", icon: CupSoda },
-  { href: "/cashup", label: "Cashup", icon: Wallet },
-  { href: "/inventory", label: "Inventory", icon: Boxes }
+  { href: "/inventory", label: "Inventory", icon: Boxes },
+  { href: "/cashup", label: "Cashup", icon: Wallet }
 ];
 
 export function BottomNav() {

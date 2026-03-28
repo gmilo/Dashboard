@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { addDaysISO, startOfMonthISO, startOfWeekISO } from "@/lib/dates";
+import Link from "next/link";
 
 type InventoryLog = any;
 
@@ -161,10 +162,17 @@ export function InventoryLogsReport({ todayISO }: { todayISO: string }) {
                 const qtyText = `${isAdd ? "+" : "-"}${qty || 0}`;
                 const empName = employee.name_preferred || `${employee.name_first ?? ""} ${employee.name_last ?? ""}`.trim() || "—";
                 const company = log.company ?? log.company_name ?? `Company ${log.company_id ?? ""}`;
+                const invId = inv.id ?? log.inventory_id ?? log.inventoryId ?? null;
                 return (
                   <tr key={String(log.id ?? `${type}-${log.created_at}-${inv.name}`)} className="border-t border-slate-200 dark:border-slate-800">
                     <td className="px-3 py-2">
-                      <div className="font-semibold">{inv.name ?? "Unknown"}</div>
+                      {invId ? (
+                        <Link href={`/inventory/items/${invId}`} className="font-semibold text-sky-700 hover:underline dark:text-sky-300">
+                          {inv.name ?? "Unknown"}
+                        </Link>
+                      ) : (
+                        <div className="font-semibold">{inv.name ?? "Unknown"}</div>
+                      )}
                       <div className="text-xs text-slate-500 dark:text-slate-400">Stock: {inv.quantity ?? "—"}</div>
                     </td>
                     {showCompany ? <td className="px-3 py-2">{company}</td> : null}
@@ -185,4 +193,3 @@ export function InventoryLogsReport({ todayISO }: { todayISO: string }) {
     </div>
   );
 }
-

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
+import Link from "next/link";
 
 type ValidationRow = {
   id: number | null;
@@ -127,7 +128,13 @@ export function InventoryValidation({ todayISO }: { todayISO: string }) {
                         <div className="h-8 w-8 rounded-lg bg-slate-200/60 dark:bg-slate-800/60" />
                       )}
                       <div className="min-w-0">
-                        <div className="truncate font-semibold">{r.name}</div>
+                        {r.id ? (
+                          <Link href={`/inventory/items/${r.id}`} className="block truncate font-semibold text-sky-700 hover:underline dark:text-sky-300">
+                            {r.name}
+                          </Link>
+                        ) : (
+                          <div className="truncate font-semibold">{r.name}</div>
+                        )}
                         {r.name_sub ? <div className="truncate text-xs text-slate-500 dark:text-slate-400">{r.name_sub}</div> : null}
                       </div>
                     </div>
@@ -156,4 +163,3 @@ export function InventoryValidation({ todayISO }: { todayISO: string }) {
     </div>
   );
 }
-

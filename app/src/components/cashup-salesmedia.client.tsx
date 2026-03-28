@@ -312,11 +312,11 @@ function CashupEntryWidget({
         <thead className="bg-slate-50 text-[11px] font-semibold text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
           <tr>
             <th className="w-[64px] px-3 py-2 text-left font-medium">Photo</th>
-            <th className="px-3 py-2 text-left font-medium">Name</th>
             <th className="w-[110px] px-3 py-2 text-right font-medium">Total</th>
             <th className="w-[110px] px-3 py-2 text-right font-medium">Actual</th>
             <th className="w-[110px] px-3 py-2 text-right font-medium">System</th>
             <th className="w-[110px] px-3 py-2 text-right font-medium">+/-</th>
+            <th className="px-3 py-2 text-left font-medium">Name</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -344,6 +344,10 @@ function CashupEntryWidget({
                     )}
                   </div>
                 </td>
+                <td className="px-3 py-2 text-right tabular-nums">{format(e.total)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{format(e.actual)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{format(e.system)}</td>
+                <td className={`px-3 py-2 text-right tabular-nums font-semibold ${variance.cls}`}>{variance.text}</td>
                 <td className="px-3 py-2">
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="h-9 w-9 overflow-hidden rounded-full bg-slate-200/60 dark:bg-slate-800/60">
@@ -358,10 +362,6 @@ function CashupEntryWidget({
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-2 text-right tabular-nums">{format(e.total)}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{format(e.actual)}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{format(e.system)}</td>
-                <td className={`px-3 py-2 text-right tabular-nums font-semibold ${variance.cls}`}>{variance.text}</td>
               </tr>
             );
           })}

@@ -123,6 +123,7 @@ export async function GET(request: Request) {
   const discount = url.searchParams.get("discount")?.trim() ?? "";
   const statusFilter = (url.searchParams.get("status") ?? "").trim().toLowerCase();
   const paymentTypeFilterRaw = (url.searchParams.get("payment_type") ?? "").trim();
+  const productIdRaw = (url.searchParams.get("product_id") ?? "").trim();
   const companyIdRaw = (url.searchParams.get("company_id") ?? "").trim();
   const limitRaw = (url.searchParams.get("limit") ?? "0").trim();
   const limit = String(Math.max(0, Number(limitRaw) || 0));
@@ -149,6 +150,7 @@ export async function GET(request: Request) {
   upstreamUrl.searchParams.set("limit", limit);
   // NOTE: do NOT forward `status` to upstream because that endpoint disables date filtering when status is set.
   if (discount === "1" || discount.toLowerCase() === "true") upstreamUrl.searchParams.set("discount", "1");
+  if (productIdRaw) upstreamUrl.searchParams.set("product_id", productIdRaw);
 
   if (companyIdRaw) {
     const requestedCompanyId = Number(companyIdRaw);
@@ -202,6 +204,7 @@ export async function GET(request: Request) {
         discount: discount === "1" || discount.toLowerCase() === "true" ? 1 : null,
         status: statusFilter || null,
         payment_type: paymentTypeFilterRaw || null,
+        product_id: productIdRaw || null,
         limit: Number(limit)
       },
       meta,

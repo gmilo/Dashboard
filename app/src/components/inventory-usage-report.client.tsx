@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { addDaysISO, startOfMonthISO, startOfWeekISO } from "@/lib/dates";
+import Link from "next/link";
 
 type UsageRow = any;
 
@@ -144,6 +145,7 @@ export function InventoryUsageReport({ todayISO }: { todayISO: string }) {
             </thead>
             <tbody>
               {rows.map((item) => {
+                const invId = item.reference_id ?? item.inventory_id ?? item.id ?? null;
                 const types = Array.isArray(item.types) ? item.types : [];
                 const addStock = toNumber(types.find((t: any) => t?.type === "AddStock")?.total_quantity);
                 const subStock = toNumber(types.find((t: any) => t?.type === "SubtractStock")?.total_quantity);
@@ -164,7 +166,13 @@ export function InventoryUsageReport({ todayISO }: { todayISO: string }) {
                           <div className="h-8 w-8 rounded-lg bg-slate-200/60 dark:bg-slate-800/60" />
                         )}
                         <div className="min-w-0">
-                          <div className="truncate font-semibold">{item.inventory_name ?? item.name ?? "Item"}</div>
+                          {invId ? (
+                            <Link href={`/inventory/items/${invId}`} className="block truncate font-semibold text-sky-700 hover:underline dark:text-sky-300">
+                              {item.inventory_name ?? item.name ?? "Item"}
+                            </Link>
+                          ) : (
+                            <div className="truncate font-semibold">{item.inventory_name ?? item.name ?? "Item"}</div>
+                          )}
                           {item.inventory_name_sub || item.name_sub ? <div className="truncate text-xs text-slate-500 dark:text-slate-400">{item.inventory_name_sub ?? item.name_sub}</div> : null}
                         </div>
                       </div>
@@ -185,4 +193,3 @@ export function InventoryUsageReport({ todayISO }: { todayISO: string }) {
     </div>
   );
 }
-

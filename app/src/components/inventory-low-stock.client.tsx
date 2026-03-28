@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
+import Link from "next/link";
 
 type LowStockItem = any;
 
@@ -89,7 +90,6 @@ export function InventoryLowStock({ todayISO }: { todayISO: string }) {
             <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
               <tr>
                 <th className="px-3 py-2 text-left font-medium">Item</th>
-                <th className="px-3 py-2 text-left font-medium">Category</th>
                 <th className="px-3 py-2 text-center font-medium">Store</th>
                 <th className="px-3 py-2 text-center font-medium">Total</th>
                 <th className="px-3 py-2 text-center font-medium">Pending</th>
@@ -104,10 +104,21 @@ export function InventoryLowStock({ todayISO }: { todayISO: string }) {
                 const pending = Number(item.pending ?? 0);
                 const validatedBy = item.validated_by;
                 const validatedAt = item.validated_at;
+                const invId = item.reference_id ?? item.inventory_id ?? item.id ?? null;
                 return (
                   <tr key={String(item.id ?? `${item.name}-${item.expiry}`)} className="border-t border-slate-200 dark:border-slate-800">
-                    <td className="px-3 py-2 font-semibold">{item.name ?? "Item"}</td>
-                    <td className="px-3 py-2">{item.category ?? ""}</td>
+                    <td className="px-3 py-2 font-semibold">
+                      <div className="max-w-[50vw] min-w-0">
+                        {invId ? (
+                          <Link href={`/inventory/items/${invId}`} className="block truncate text-sky-700 hover:underline dark:text-sky-300">
+                            {item.name ?? "Item"}
+                          </Link>
+                        ) : (
+                          <div className="truncate">{item.name ?? "Item"}</div>
+                        )}
+                        {item.category ? <div className="truncate text-xs font-medium text-slate-500 dark:text-slate-400">{item.category}</div> : null}
+                      </div>
+                    </td>
                     <td className={`px-3 py-2 text-center font-semibold ${storeStock ? "text-rose-700 dark:text-rose-300" : "text-slate-500 dark:text-slate-400"}`}>{storeStock || 0}</td>
                     <td className="px-3 py-2 text-center font-semibold text-emerald-700 dark:text-emerald-300">{qty || 0}</td>
                     <td className="px-3 py-2 text-center font-semibold text-amber-700 dark:text-amber-300">{pending || 0}</td>
@@ -132,4 +143,3 @@ export function InventoryLowStock({ todayISO }: { todayISO: string }) {
     </div>
   );
 }
-
