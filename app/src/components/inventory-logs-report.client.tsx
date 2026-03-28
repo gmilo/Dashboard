@@ -140,16 +140,16 @@ export function InventoryLogsReport({ todayISO }: { todayISO: string }) {
         <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-900">No inventory logs found for this range.</div>
       ) : (
         <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <table className="min-w-[880px] w-full text-sm">
-            <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
+          <table className="scroll-table">
+            <thead>
               <tr>
-                <th className="px-3 py-2 text-left font-medium">Inventory</th>
-                <th className="px-3 py-2 text-center font-medium">Qty</th>
-                <th className="px-3 py-2 text-left font-medium">Employee</th>
-                <th className="px-3 py-2 text-left font-medium">Description</th>
-                <th className="px-3 py-2 text-left font-medium">Type</th>
-                <th className="px-3 py-2 text-left font-medium">Date</th>
-                {showCompany ? <th className="px-3 py-2 text-left font-medium">Company</th> : null}
+                <th>Inventory</th>
+                <th className="text-center">Qty</th>
+                <th>Employee</th>
+                <th>Description</th>
+                <th>Type</th>
+                <th>Date</th>
+                {showCompany ? <th>Company</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -164,8 +164,8 @@ export function InventoryLogsReport({ todayISO }: { todayISO: string }) {
                 const company = log.company ?? log.company_name ?? `Company ${log.company_id ?? ""}`;
                 const invId = inv.id ?? log.inventory_id ?? log.inventoryId ?? null;
                 return (
-                  <tr key={String(log.id ?? `${type}-${log.created_at}-${inv.name}`)} className="border-t border-slate-200 dark:border-slate-800">
-                    <td className="px-3 py-2">
+                  <tr key={String(log.id ?? `${type}-${log.created_at}-${inv.name}`)}>
+                    <td>
                       {invId ? (
                         <Link href={`/inventory/items/${invId}`} className="font-semibold text-sky-700 hover:underline dark:text-sky-300">
                           {inv.name ?? "Unknown"}
@@ -175,14 +175,16 @@ export function InventoryLogsReport({ todayISO }: { todayISO: string }) {
                       )}
                       <div className="text-xs text-slate-500 dark:text-slate-400">Stock: {inv.quantity ?? "—"}</div>
                     </td>
-                    <td className={`px-3 py-2 text-center font-semibold ${isAdd ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300"}`}>{qtyText}</td>
-                    <td className="px-3 py-2">{empName}</td>
-                    <td className="px-3 py-2">{String(log.description ?? "")}</td>
-                    <td className="px-3 py-2">
+                    <td className={`text-center font-semibold ${isAdd ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300"}`}>{qtyText}</td>
+                    <td>{empName}</td>
+                    <td>
+                      <span className="max-w-[260px] truncate inline-block align-top">{String(log.description ?? "")}</span>
+                    </td>
+                    <td>
                       <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${badge(type)}`}>{type}</span>
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap">{fmtDateTime(String(log.created_at ?? ""))}</td>
-                    {showCompany ? <td className="px-3 py-2">{company}</td> : null}
+                    <td>{fmtDateTime(String(log.created_at ?? ""))}</td>
+                    {showCompany ? <td>{company}</td> : null}
                   </tr>
                 );
               })}

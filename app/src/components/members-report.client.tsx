@@ -105,15 +105,15 @@ export function MembersReport({ companies }: { companies: Company[] }) {
 
       {rows.length ? (
         <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <table className="min-w-[720px] w-full text-sm">
-            <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
+          <table className="scroll-table">
+            <thead>
               <tr>
-                <th className="px-3 py-2 text-left font-medium">Member</th>
-                {showCompanyColumn ? <th className="px-3 py-2 text-left font-medium">Company</th> : null}
-                <th className="px-3 py-2 text-left font-medium">Last txn</th>
-                <th className="px-3 py-2 text-right font-medium">Last sale</th>
-                <th className="px-3 py-2 text-right font-medium">Orders</th>
-                <th className="px-3 py-2 text-right font-medium">Total spend</th>
+                <th>Member</th>
+                {showCompanyColumn ? <th>Company</th> : null}
+                <th>Last txn</th>
+                <th className="text-right">Last sale</th>
+                <th className="text-right">Orders</th>
+                <th className="text-right">Total spend</th>
               </tr>
             </thead>
             <tbody>
@@ -128,8 +128,8 @@ export function MembersReport({ companies }: { companies: Company[] }) {
                 const orders = toNumber(m.sales_count);
                 const totalSpend = moneyAUD(m.total_spend);
                 return (
-                  <tr key={`${m.company_id ?? ""}:${String(id)}`} className="border-t border-slate-200 dark:border-slate-800">
-                    <td className="px-3 py-2 align-top">
+                  <tr key={`${m.company_id ?? ""}:${String(id)}`}>
+                    <td>
                       {id ? (
                         <Link href={`/members/${String(id)}`} className="block min-w-0">
                           <div className="flex min-w-0 items-center gap-2">
@@ -155,16 +155,16 @@ export function MembersReport({ companies }: { companies: Company[] }) {
                       )}
                     </td>
                     {showCompanyColumn ? (
-                      <td className="px-3 py-2 align-top">
+                      <td>
                         <div className="truncate">{m.company_name ?? `Company ${String(m.company_id ?? "")}`}</div>
                       </td>
                     ) : null}
-                    <td className="px-3 py-2 align-top">
+                    <td>
                       <div className="whitespace-nowrap">{lastTxn}</div>
                     </td>
-                    <td className="px-3 py-2 text-right align-top tabular-nums">{lastSale}</td>
-                    <td className="px-3 py-2 text-right align-top tabular-nums">{orders || "—"}</td>
-                    <td className="px-3 py-2 text-right align-top tabular-nums">{totalSpend}</td>
+                    <td className="text-right tabular-nums">{lastSale}</td>
+                    <td className="text-right tabular-nums">{orders || "—"}</td>
+                    <td className="text-right tabular-nums">{totalSpend}</td>
                   </tr>
                 );
               })}

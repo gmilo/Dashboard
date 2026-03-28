@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { addDaysISO, startOfMonthISO, startOfWeekISO } from "@/lib/dates";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type UsageRow = any;
 
@@ -27,6 +27,7 @@ function money(n: number) {
 }
 
 export function InventoryUsageReport({ todayISO }: { todayISO: string }) {
+  const router = useRouter();
   const [preset, setPreset] = useState<Preset>("today");
   const [customFrom, setCustomFrom] = useState<string>(todayISO);
   const [customTo, setCustomTo] = useState<string>(todayISO);
@@ -131,16 +132,16 @@ export function InventoryUsageReport({ todayISO }: { todayISO: string }) {
         <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-900">No inventory usage found for this range.</div>
       ) : (
         <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <table className="min-w-[980px] w-full table-fixed text-sm">
-            <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
+          <table className="scroll-table">
+            <thead>
               <tr>
-                <th className="w-1/2 px-3 py-2 text-left font-medium">Item</th>
-                <th className="px-3 py-2 text-center font-medium">+</th>
-                <th className="px-3 py-2 text-center font-medium">-</th>
-                <th className="px-3 py-2 text-center font-medium">AVG/day</th>
-                <th className="px-3 py-2 text-right font-medium">Usage cost</th>
-                <th className="px-3 py-2 text-center font-medium">Stock</th>
-                {showCompany ? <th className="px-3 py-2 text-left font-medium">Company</th> : null}
+                <th>Item</th>
+                <th className="text-center">+</th>
+                <th className="text-center">-</th>
+                <th className="text-center">Avg</th>
+                <th className="text-right">Cost</th>
+                <th className="text-center">Stock</th>
+                {showCompany ? <th className="hidden sm:table-cell">Company</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -155,9 +156,14 @@ export function InventoryUsageReport({ todayISO }: { todayISO: string }) {
                 const avgPerDay = subStock / daysDiff;
                 const stockQty = toNumber(item.inventory_quantity ?? item.quantity);
                 const companyName = item.company_name ?? item.company ?? `Company ${item.company_id ?? ""}`;
+                const href = invId ? `/inventory/items/${invId}` : "";
                 return (
-                  <tr key={String(item.reference_id ?? item.id ?? item.inventory_name ?? item.name)} className="border-t border-slate-200 dark:border-slate-800">
-                    <td className="w-1/2 px-3 py-2">
+                  <tr
+                    key={String(item.reference_id ?? item.id ?? item.inventory_name ?? item.name)}
+                    className={`${href ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-950/40" : ""}`}
+                    onClick={() => (href ? router.push(href) : null)}
+                  >
+                    <td>
                       <div className="flex items-center gap-2">
                         {item.image ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -166,23 +172,17 @@ export function InventoryUsageReport({ todayISO }: { todayISO: string }) {
                           <div className="h-8 w-8 rounded-lg bg-slate-200/60 dark:bg-slate-800/60" />
                         )}
                         <div className="min-w-0">
-                          {invId ? (
-                            <Link href={`/inventory/items/${invId}`} className="block break-words font-semibold text-sky-700 hover:underline dark:text-sky-300">
-                              {item.inventory_name ?? item.name ?? "Item"}
-                            </Link>
-                          ) : (
-                            <div className="break-words font-semibold">{item.inventory_name ?? item.name ?? "Item"}</div>
-                          )}
+                          <div className="max-w-[220px] truncate font-semibold text-slate-900 dark:text-white">{item.inventory_name ?? item.name ?? "Item"}</div>
                           {item.inventory_name_sub || item.name_sub ? <div className="truncate text-xs text-slate-500 dark:text-slate-400">{item.inventory_name_sub ?? item.name_sub}</div> : null}
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-2 text-center font-semibold text-emerald-700 dark:text-emerald-300">{addStock}</td>
-                    <td className="px-3 py-2 text-center font-semibold text-rose-700 dark:text-rose-300">{subStock}</td>
-                    <td className="px-3 py-2 text-center tabular-nums">{avgPerDay.toFixed(2)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums font-semibold">{money(usageCost)}</td>
-                    <td className="px-3 py-2 text-center tabular-nums">{stockQty}</td>
-                    {showCompany ? <td className="px-3 py-2">{companyName}</td> : null}
+                    <td className="text-center font-semibold text-emerald-700 dark:text-emerald-300">{addStock}</td>
+                    <td className="text-center font-semibold text-rose-700 dark:text-rose-300">{subStock}</td>
+                    <td className="text-center tabular-nums">{avgPerDay.toFixed(2)}</td>
+                    <td className="text-right tabular-nums font-semibold">{money(usageCost)}</td>
+                    <td className="text-center tabular-nums">{stockQty}</td>
+                    {showCompany ? <td className="hidden sm:table-cell">{companyName}</td> : null}
                   </tr>
                 );
               })}

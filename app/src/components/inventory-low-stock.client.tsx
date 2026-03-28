@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type LowStockItem = any;
 
@@ -23,6 +23,7 @@ function fmtDateLabel(dateISO?: string) {
 }
 
 export function InventoryLowStock({ todayISO }: { todayISO: string }) {
+  const router = useRouter();
   const [companyId, setCompanyId] = useState<string>("");
 
   const key = ["inv-low-stock", companyId || "auto"] as const;
@@ -86,15 +87,15 @@ export function InventoryLowStock({ todayISO }: { todayISO: string }) {
         <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-900">No low stock items found.</div>
       ) : (
         <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <table className="min-w-[860px] w-full table-fixed text-sm">
-            <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
+          <table className="scroll-table">
+            <thead>
               <tr>
-                <th className="w-1/2 px-3 py-2 text-left font-medium">Item</th>
-                <th className="w-[72px] whitespace-nowrap px-3 py-2 text-center font-medium">Store</th>
-                <th className="w-[72px] whitespace-nowrap px-3 py-2 text-center font-medium">Total</th>
-                <th className="w-[88px] whitespace-nowrap px-3 py-2 text-center font-medium">Pending</th>
-                <th className="w-[110px] whitespace-nowrap px-3 py-2 text-left font-medium">Expiry</th>
-                <th className="w-[200px] whitespace-nowrap px-3 py-2 text-left font-medium">Validated</th>
+                <th>Item</th>
+                <th className="text-center">Store</th>
+                <th className="text-center">Total</th>
+                <th className="text-center">Pending</th>
+                <th className="hidden whitespace-nowrap px-3 py-2 text-left font-medium sm:table-cell">Expiry</th>
+                <th className="hidden whitespace-nowrap px-3 py-2 text-left font-medium sm:table-cell">Validated</th>
               </tr>
             </thead>
             <tbody>
@@ -105,25 +106,35 @@ export function InventoryLowStock({ todayISO }: { todayISO: string }) {
                 const validatedBy = item.validated_by;
                 const validatedAt = item.validated_at;
                 const invId = item.reference_id ?? item.inventory_id ?? item.id ?? null;
+                const href = invId ? `/inventory/items/${invId}` : "";
                 return (
-                  <tr key={String(item.id ?? `${item.name}-${item.expiry}`)} className="border-t border-slate-200 dark:border-slate-800">
-                    <td className="w-1/2 px-3 py-2 font-semibold">
+                  <tr
+                    key={String(item.id ?? `${item.name}-${item.expiry}`)}
+                    className={`${href ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-950/40" : ""}`}
+                    onClick={() => (href ? router.push(href) : null)}
+                  >
+                    <td>
                       <div className="min-w-0">
-                        {invId ? (
-                          <Link href={`/inventory/items/${invId}`} className="block break-words text-sky-700 hover:underline dark:text-sky-300">
-                            {item.name ?? "Item"}
-                          </Link>
-                        ) : (
-                          <div className="break-words">{item.name ?? "Item"}</div>
-                        )}
+                        <div className="max-w-[220px] truncate font-semibold text-slate-900 dark:text-white">{item.name ?? "Item"}</div>
                         {item.category ? <div className="truncate text-xs font-medium text-slate-500 dark:text-slate-400">{item.category}</div> : null}
+                        <div className="mt-0.5 space-y-0.5 text-[10px] text-slate-600 dark:text-slate-300 sm:hidden">
+                          {item.expiry ? <div className="truncate">Expiry: {fmtDateLabel(item.expiry)}</div> : null}
+                          {validatedBy ? (
+                            <div className="truncate">
+                              Validated: {String(validatedBy)}
+                              {validatedAt ? ` • ${String(validatedAt).slice(0, 16).replace("T", " ")}` : ""}
+                            </div>
+                          ) : (
+                            <div className="truncate text-rose-700 dark:text-rose-300">Not validated</div>
+                          )}
+                        </div>
                       </div>
                     </td>
-                    <td className={`px-3 py-2 text-center font-semibold ${storeStock ? "text-rose-700 dark:text-rose-300" : "text-slate-500 dark:text-slate-400"}`}>{storeStock || 0}</td>
-                    <td className="px-3 py-2 text-center font-semibold text-emerald-700 dark:text-emerald-300">{qty || 0}</td>
-                    <td className="px-3 py-2 text-center font-semibold text-amber-700 dark:text-amber-300">{pending || 0}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">{item.expiry ? fmtDateLabel(item.expiry) : "—"}</td>
-                    <td className="px-3 py-2">
+                    <td className={`text-center font-semibold ${storeStock ? "text-rose-700 dark:text-rose-300" : "text-slate-500 dark:text-slate-400"}`}>{storeStock || 0}</td>
+                    <td className="text-center font-semibold text-emerald-700 dark:text-emerald-300">{qty || 0}</td>
+                    <td className="text-center font-semibold text-amber-700 dark:text-amber-300">{pending || 0}</td>
+                    <td className="hidden sm:table-cell">{item.expiry ? fmtDateLabel(item.expiry) : "—"}</td>
+                    <td className="hidden sm:table-cell">
                       {validatedBy ? (
                         <div>
                           <div className="font-semibold">{String(validatedBy)}</div>

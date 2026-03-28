@@ -299,16 +299,16 @@ export function TransactionsReport({ todayISO, memberId }: { todayISO: string; m
         </div>
       ) : sorted.length ? (
         <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <table className="min-w-[860px] w-full text-sm">
-            <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
+          <table className="scroll-table">
+            <thead>
               <tr>
-                <th className="px-3 py-2 text-left font-medium">When</th>
-                <th className="px-3 py-2 text-left font-medium">Items</th>
-                {showMemberColumn ? <th className="px-3 py-2 text-left font-medium">Member</th> : null}
-                <th className="px-3 py-2 text-left font-medium">Payment</th>
-                <th className="px-3 py-2 text-left font-medium">Status</th>
-                <th className="px-3 py-2 text-right font-medium">Final</th>
-                {showCompanyColumn ? <th className="px-3 py-2 text-left font-medium">Company</th> : null}
+                <th>When</th>
+                <th>Items</th>
+                {showMemberColumn ? <th>Member</th> : null}
+                <th>Payment</th>
+                <th>Status</th>
+                <th className="text-right">Final</th>
+                {showCompanyColumn ? <th>Company</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -327,21 +327,21 @@ export function TransactionsReport({ todayISO, memberId }: { todayISO: string; m
                 return (
                   <tr
                     key={t.sale.id}
-                    className="cursor-pointer border-t border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950/40"
+                    className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-950/40"
                     onClick={() => setSelected(t)}
                   >
-                    <td className="px-3 py-2 align-top">
+                    <td>
                       <div className="font-medium">{when.primary}</div>
                       {when.secondary ? (
                         <div className="mt-0.5 whitespace-nowrap text-xs font-medium text-slate-500 dark:text-slate-400">{when.secondary}</div>
                       ) : null}
                     </td>
-                    <td className="px-3 py-2 align-top">
-                      <div className="text-sm">{itemSummary || "—"}</div>
+                    <td>
+                      <div className="max-w-[240px] truncate">{itemSummary || "—"}</div>
                       {remaining ? <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">+{remaining} more</div> : null}
                     </td>
                     {showMemberColumn ? (
-                      <td className="px-3 py-2 align-top">
+                      <td>
                         {member ? (
                           (() => {
                             const memberId = member?.id ?? "";
@@ -357,7 +357,7 @@ export function TransactionsReport({ todayISO, memberId }: { todayISO: string; m
                                   />
                                 </div>
                                 <div className="min-w-0">
-                                  <div className="truncate text-sm font-medium">{memberName || memberEmail || "Member"}</div>
+                                  <div className="truncate text-[11px] font-medium">{memberName || memberEmail || "Member"}</div>
                                   {memberNo ? <div className="whitespace-nowrap text-xs text-slate-500 dark:text-slate-400">#{memberNo}</div> : null}
                                 </div>
                               </div>
@@ -376,7 +376,7 @@ export function TransactionsReport({ todayISO, memberId }: { todayISO: string; m
                         )}
                       </td>
                     ) : null}
-                    <td className="px-3 py-2 align-top">
+                    <td>
                       {t.sale.payment_type ? (
                         <span className="inline-flex max-w-[180px] whitespace-nowrap rounded-full bg-slate-600/10 px-2 py-1 text-[11px] font-semibold text-slate-700 dark:bg-slate-500/10 dark:text-slate-200">
                           <span className="truncate">{t.sale.payment_type}</span>
@@ -385,16 +385,14 @@ export function TransactionsReport({ todayISO, memberId }: { todayISO: string; m
                         <span className="text-xs text-slate-500 dark:text-slate-400">—</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 align-top">
+                    <td>
                       <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold leading-none ${statusBadge(t.sale.status)}`}>
                         {t.sale.status ?? "Unknown"}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-right align-top tabular-nums">{money(toNumber(t.sale.final_amount))}</td>
+                    <td className="text-right tabular-nums">{money(toNumber(t.sale.final_amount))}</td>
                     {showCompanyColumn ? (
-                      <td className="px-3 py-2 align-top">
-                        <div className="font-medium">{t.sale.company_name ?? `Company ${t.sale.company_id}`}</div>
-                      </td>
+                      <td>{t.sale.company_name ?? `Company ${t.sale.company_id}`}</td>
                     ) : null}
                   </tr>
                 );

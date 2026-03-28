@@ -212,27 +212,27 @@ export function MerchandiseReport({ todayISO }: { todayISO: string }) {
         </div>
       ) : (
         <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <table className="min-w-[720px] w-full text-sm">
-            <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
+          <table className="scroll-table">
+            <thead>
               <tr>
-                <th className="px-3 py-2 text-left font-medium">Product</th>
-                <th className="px-3 py-2 text-right font-medium">Qty</th>
-                <th className="px-3 py-2 text-right font-medium">Amount</th>
+                <th>Product</th>
+                <th className="text-right">Qty</th>
+                <th className="text-right">Amount</th>
               </tr>
             </thead>
             <tbody>
               {visibleRows.map((r) => (
                 <tr
                   key={`${r.company_id}-${r.product_id}`}
-                  className="cursor-pointer border-t border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950/40"
+                  className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-950/40"
                   onClick={() => router.push(`/drinks/${r.product_id}`)}
                 >
-                  <td className="px-3 py-2">
-                    <div className="font-semibold text-sky-700 dark:text-sky-300">{r.item_name}</div>
+                  <td>
+                    <div className="max-w-[240px] truncate font-semibold text-sky-700 dark:text-sky-300">{r.item_name}</div>
                     <div className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">{r.company}</div>
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums font-semibold">{r.qty}</td>
-                  <td className="px-3 py-2 text-right tabular-nums font-semibold">{money(r.amount)}</td>
+                  <td className="text-right tabular-nums font-semibold">{r.qty}</td>
+                  <td className="text-right tabular-nums font-semibold">{money(r.amount)}</td>
                 </tr>
               ))}
             </tbody>

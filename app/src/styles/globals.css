@@ -15,3 +15,24 @@ body {
   @apply bg-slate-950 text-slate-50;
 }
 
+@layer components {
+  .scroll-table {
+    @apply w-max min-w-full table-auto text-[11px];
+  }
+
+  .scroll-table thead {
+    @apply bg-slate-50 text-[10px] text-slate-500 dark:bg-slate-950/50 dark:text-slate-400;
+  }
+
+  .scroll-table th {
+    @apply px-2 py-2 font-medium whitespace-nowrap;
+  }
+
+  .scroll-table td {
+    @apply px-2 py-2 align-top whitespace-nowrap;
+  }
+
+  .scroll-table tbody tr {
+    @apply border-t border-slate-200 dark:border-slate-800;
+  }
+}

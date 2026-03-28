@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type ValidationRow = {
   id: number | null;
@@ -34,6 +34,7 @@ function fmtWhen(iso: string | null) {
 }
 
 export function InventoryValidation({ todayISO }: { todayISO: string }) {
+  const router = useRouter();
   const [companyId, setCompanyId] = useState<string>("");
   const [date, setDate] = useState<string>(todayISO);
 
@@ -105,41 +106,45 @@ export function InventoryValidation({ todayISO }: { todayISO: string }) {
         </div>
       ) : (
         <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <table className="min-w-[920px] w-full table-fixed text-sm">
-            <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
+          <table className="scroll-table">
+            <thead>
               <tr>
-                <th className="w-1/2 px-3 py-2 text-left font-medium">Item</th>
-                <th className="w-[96px] whitespace-nowrap px-3 py-2 text-left font-medium">Status</th>
-                <th className="w-[72px] whitespace-nowrap px-3 py-2 text-center font-medium">Stock</th>
-                <th className="w-[72px] whitespace-nowrap px-3 py-2 text-center font-medium">Days</th>
-                <th className="w-[150px] whitespace-nowrap px-3 py-2 text-left font-medium">Last</th>
-                <th className="w-[200px] px-3 py-2 text-left font-medium">By</th>
+                <th>Item</th>
+                <th>Status</th>
+                <th className="text-center">Stock</th>
+                <th className="text-center">Days</th>
+                <th className="hidden whitespace-nowrap px-3 py-2 text-left font-medium sm:table-cell">Last</th>
+                <th className="hidden px-3 py-2 text-left font-medium sm:table-cell">By</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
-                <tr key={String(r.id ?? r.name)} className="border-t border-slate-200 dark:border-slate-800">
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      {r.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={r.image} alt="" className="h-8 w-8 rounded-lg object-cover" />
-                      ) : (
-                        <div className="h-8 w-8 rounded-lg bg-slate-200/60 dark:bg-slate-800/60" />
-                      )}
-                      <div className="min-w-0">
-                        {r.id ? (
-                          <Link href={`/inventory/items/${r.id}`} className="block truncate font-semibold text-sky-700 hover:underline dark:text-sky-300">
-                            {r.name}
-                          </Link>
+              {rows.map((r) => {
+                const href = r.id ? `/inventory/items/${r.id}` : "";
+                return (
+                  <tr
+                    key={String(r.id ?? r.name)}
+                    className={`${href ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-950/40" : ""}`}
+                    onClick={() => (href ? router.push(href) : null)}
+                  >
+                    <td>
+                      <div className="flex items-center gap-2">
+                        {r.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={r.image} alt="" className="h-8 w-8 rounded-lg object-cover" />
                         ) : (
-                          <div className="truncate font-semibold">{r.name}</div>
+                          <div className="h-8 w-8 rounded-lg bg-slate-200/60 dark:bg-slate-800/60" />
                         )}
-                        {r.name_sub ? <div className="truncate text-xs text-slate-500 dark:text-slate-400">{r.name_sub}</div> : null}
+                        <div className="min-w-0">
+                          <div className="max-w-[220px] truncate font-semibold text-slate-900 dark:text-white">{r.name}</div>
+                          {r.name_sub ? <div className="truncate text-xs text-slate-500 dark:text-slate-400">{r.name_sub}</div> : null}
+                          <div className="mt-0.5 space-y-0.5 text-[10px] text-slate-600 dark:text-slate-300 sm:hidden">
+                            <div className="truncate">Last: {fmtWhen(r.last_validated_at)}</div>
+                            <div className="truncate">By: {r.validated_by ?? "N/A"}</div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2">
+                    </td>
+                    <td>
                     {r.required ? (
                       <span className="inline-flex rounded-full bg-rose-600/10 px-2 py-1 text-[11px] font-semibold text-rose-800 dark:bg-rose-500/10 dark:text-rose-200">
                         Required
@@ -150,12 +155,13 @@ export function InventoryValidation({ todayISO }: { todayISO: string }) {
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-2 text-center tabular-nums">{r.stock_qty}</td>
-                  <td className="px-3 py-2 text-center tabular-nums">{r.validation_days}</td>
-                  <td className="px-3 py-2 whitespace-nowrap">{fmtWhen(r.last_validated_at)}</td>
-                  <td className="px-3 py-2">{r.validated_by ?? "N/A"}</td>
-                </tr>
-              ))}
+                    <td className="text-center tabular-nums">{r.stock_qty}</td>
+                    <td className="text-center tabular-nums">{r.validation_days}</td>
+                    <td className="hidden sm:table-cell">{fmtWhen(r.last_validated_at)}</td>
+                    <td className="hidden sm:table-cell">{r.validated_by ?? "N/A"}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </section>

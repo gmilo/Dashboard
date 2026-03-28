@@ -160,8 +160,8 @@ export function ToppingsReport({ todayISO }: { todayISO: string }) {
         </div>
       ) : sorted.length ? (
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
+          <table className="w-full text-[11px]">
+            <thead className="bg-slate-50 text-[10px] text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
               <tr>
                 <th className="px-3 py-2 text-left font-medium">Topping</th>
                 <th className="px-3 py-2 text-right font-medium">Qty</th>
