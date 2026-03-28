@@ -242,6 +242,21 @@ function SummaryModal({
       .sort((a, b) => Number(b.total_qty ?? 0) - Number(a.total_qty ?? 0) || String(a.category ?? "").localeCompare(String(b.category ?? "")));
   }, [categoriesDetails?.rows]);
 
+  const categoryTotals = useMemo(() => {
+    const rows = categoriesDetails?.rows ?? [];
+    const map = new Map<string, { qty: number; amount: number }>();
+    for (const r of rows) {
+      const raw = typeof r.category === "string" ? r.category : "";
+      const key = raw.trim();
+      if (!key) continue;
+      if (r.item_name) continue; // prefer aggregated rows
+      map.set(key, { qty: Number(r.total_qty ?? 0), amount: toNum(r.total_price) });
+    }
+    return map;
+  }, [categoriesDetails?.rows]);
+
+  const cat = (name: string) => categoryTotals.get(name) ?? categoryTotals.get(`${name} `) ?? { qty: 0, amount: 0 };
+
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -314,6 +329,28 @@ function SummaryModal({
                   {formatNumber(Number(categoriesDetails.totals.total_qty ?? 0))} • {formatAUD(toNum(categoriesDetails.totals.total_price))}
                 </div>
               ) : null}
+            </div>
+
+            <div className="mt-2 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+              {[
+                { label: "Regular Cups", key: "Regular Drinks" },
+                { label: "Large Cups", key: "Large Drinks" },
+                { label: "Jumbo Cups", key: "Jumbo Drinks" },
+                { label: "Toppings", key: "Toppings" },
+                { label: "Soft Serve", key: "Soft Serve" },
+                { label: "Merchandise", key: "Merchandise" }
+              ].map((b) => {
+                const v = cat(b.key);
+                return (
+                  <div key={b.key} className="rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900">
+                    <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">{b.label}</div>
+                    <div className="mt-0.5 flex items-baseline justify-between gap-2">
+                      <div className="text-sm font-semibold tabular-nums">{formatNumber(v.qty)}</div>
+                      <div className="text-[10px] tabular-nums text-slate-500 dark:text-slate-400">{formatAUD(v.amount)}</div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="mt-2">
@@ -440,65 +477,112 @@ function SummaryModal({
                 <div className="text-sm font-semibold">Daily history</div>
                 <div className="text-xs text-slate-500 dark:text-slate-400">{perDayHistory?.length ? `${perDayHistory.length} days` : ""}</div>
               </div>
-              <div className="mt-2 space-y-2 sm:hidden">
-                {(perDayHistory ?? []).slice(0, historyCount).map((d, idx) => {
-                  const day = String(d.date ?? "").slice(0, 10) || "—";
-                  const sold = typeof d.sold === "number" ? d.sold : Number(d.sold ?? 0);
-                  const orders = typeof d.sales_count === "number" ? d.sales_count : Number(d.sales_count ?? 0);
-                  const gross = Number(d.amounts?.gross ?? 0);
-                  const disc = Number(d.amounts?.discount ?? 0);
-                  const final = Number(d.amounts?.final_amount ?? 0);
-                  return (
-                    <div key={`${day}-${idx}`} className="rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900">
-                      <div className="flex items-baseline justify-between gap-3">
-                        <div className="text-[11px] font-semibold">{day}</div>
-                        <div className="text-[11px] font-semibold tabular-nums">{formatAUD(final)}</div>
-                      </div>
-                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-600 dark:text-slate-300">
-                        <span className="whitespace-nowrap">Sold {formatNumber(sold)}</span>
-                        <span className="whitespace-nowrap">Orders {formatNumber(orders)}</span>
-                        <span className="whitespace-nowrap">Gross {formatAUD(gross)}</span>
-                        <span className="whitespace-nowrap">Disc {formatAUD(disc)}</span>
+              {(() => {
+                const visible = (perDayHistory ?? []).slice(0, historyCount);
+                const totals = visible.reduce(
+                  (acc, d) => {
+                    const sold = typeof d.sold === "number" ? d.sold : Number(d.sold ?? 0);
+                    const orders = typeof d.sales_count === "number" ? d.sales_count : Number(d.sales_count ?? 0);
+                    const gross = Number(d.amounts?.gross ?? 0);
+                    const disc = Number(d.amounts?.discount ?? 0);
+                    const final = Number(d.amounts?.final_amount ?? 0);
+                    acc.sold += Number.isFinite(sold) ? sold : 0;
+                    acc.orders += Number.isFinite(orders) ? orders : 0;
+                    acc.gross += Number.isFinite(gross) ? gross : 0;
+                    acc.disc += Number.isFinite(disc) ? disc : 0;
+                    acc.final += Number.isFinite(final) ? final : 0;
+                    return acc;
+                  },
+                  { sold: 0, orders: 0, gross: 0, disc: 0, final: 0 }
+                );
+
+                return (
+                  <>
+                    <div className="mt-2 space-y-2 sm:hidden">
+                      {visible.map((d, idx) => {
+                        const day = String(d.date ?? "").slice(0, 10) || "—";
+                        const sold = typeof d.sold === "number" ? d.sold : Number(d.sold ?? 0);
+                        const orders = typeof d.sales_count === "number" ? d.sales_count : Number(d.sales_count ?? 0);
+                        const gross = Number(d.amounts?.gross ?? 0);
+                        const disc = Number(d.amounts?.discount ?? 0);
+                        const final = Number(d.amounts?.final_amount ?? 0);
+                        return (
+                          <div key={`${day}-${idx}`} className="rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900">
+                            <div className="flex items-baseline justify-between gap-3">
+                              <div className="text-[11px] font-semibold">{day}</div>
+                              <div className="text-[11px] font-semibold tabular-nums">{formatAUD(final)}</div>
+                            </div>
+                            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-600 dark:text-slate-300">
+                              <span className="whitespace-nowrap">Sold {formatNumber(sold)}</span>
+                              <span className="whitespace-nowrap">Orders {formatNumber(orders)}</span>
+                              <span className="whitespace-nowrap">Gross {formatAUD(gross)}</span>
+                              <span className="whitespace-nowrap">Disc {formatAUD(disc)}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-950/40">
+                        <div className="flex items-baseline justify-between gap-3">
+                          <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">Total</div>
+                          <div className="text-[11px] font-semibold tabular-nums text-slate-700 dark:text-slate-200">{formatAUD(totals.final)}</div>
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-600 dark:text-slate-300">
+                          <span className="whitespace-nowrap">Sold {formatNumber(totals.sold)}</span>
+                          <span className="whitespace-nowrap">Orders {formatNumber(totals.orders)}</span>
+                          <span className="whitespace-nowrap">Gross {formatAUD(totals.gross)}</span>
+                          <span className="whitespace-nowrap">Disc {formatAUD(totals.disc)}</span>
+                        </div>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
 
-              <div className="mt-2 hidden sm:block">
-                <table className="w-full table-fixed text-[11px] text-slate-700 dark:text-slate-200">
-                  <thead className="text-[10px] text-slate-500 dark:text-slate-400">
-                    <tr>
-                      <th className="w-[16%] py-2 text-left font-medium">Date</th>
-                      <th className="w-[10%] py-2 text-right font-medium">Sold</th>
-                      <th className="w-[12%] py-2 text-right font-medium">Orders</th>
-                      <th className="w-[22%] py-2 text-right font-medium">Gross</th>
-                      <th className="w-[20%] py-2 text-right font-medium">Discount</th>
-                      <th className="w-[20%] py-2 text-right font-medium">Final</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(perDayHistory ?? []).slice(0, historyCount).map((d, idx) => {
-                      const day = String(d.date ?? "").slice(0, 10) || "—";
-                      const sold = typeof d.sold === "number" ? d.sold : Number(d.sold ?? 0);
-                      const orders = typeof d.sales_count === "number" ? d.sales_count : Number(d.sales_count ?? 0);
-                      const gross = Number(d.amounts?.gross ?? 0);
-                      const disc = Number(d.amounts?.discount ?? 0);
-                      const final = Number(d.amounts?.final_amount ?? 0);
-                      return (
-                        <tr key={`${day}-${idx}`} className="border-t border-slate-200 dark:border-slate-800">
-                          <td className="py-2 pr-2 whitespace-nowrap font-medium">{day}</td>
-                          <td className="py-2 text-right tabular-nums whitespace-nowrap">{formatNumber(sold)}</td>
-                          <td className="py-2 text-right tabular-nums whitespace-nowrap">{formatNumber(orders)}</td>
-                          <td className="py-2 text-right tabular-nums whitespace-nowrap">{formatAUD(gross)}</td>
-                          <td className="py-2 text-right tabular-nums whitespace-nowrap">{formatAUD(disc)}</td>
-                          <td className="py-2 text-right tabular-nums font-semibold whitespace-nowrap">{formatAUD(final)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                    <div className="mt-2 hidden sm:block">
+                      <table className="w-full table-fixed text-[11px] text-slate-700 dark:text-slate-200">
+                        <thead className="text-[10px] text-slate-500 dark:text-slate-400">
+                          <tr>
+                            <th className="w-[16%] py-2 text-left font-medium">Date</th>
+                            <th className="w-[10%] py-2 text-right font-medium">Sold</th>
+                            <th className="w-[12%] py-2 text-right font-medium">Orders</th>
+                            <th className="w-[22%] py-2 text-right font-medium">Gross</th>
+                            <th className="w-[20%] py-2 text-right font-medium">Discount</th>
+                            <th className="w-[20%] py-2 text-right font-medium">Final</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {visible.map((d, idx) => {
+                            const day = String(d.date ?? "").slice(0, 10) || "—";
+                            const sold = typeof d.sold === "number" ? d.sold : Number(d.sold ?? 0);
+                            const orders = typeof d.sales_count === "number" ? d.sales_count : Number(d.sales_count ?? 0);
+                            const gross = Number(d.amounts?.gross ?? 0);
+                            const disc = Number(d.amounts?.discount ?? 0);
+                            const final = Number(d.amounts?.final_amount ?? 0);
+                            return (
+                              <tr key={`${day}-${idx}`} className="border-t border-slate-200 dark:border-slate-800">
+                                <td className="py-2 pr-2 whitespace-nowrap font-medium">{day}</td>
+                                <td className="py-2 text-right tabular-nums whitespace-nowrap">{formatNumber(sold)}</td>
+                                <td className="py-2 text-right tabular-nums whitespace-nowrap">{formatNumber(orders)}</td>
+                                <td className="py-2 text-right tabular-nums whitespace-nowrap">{formatAUD(gross)}</td>
+                                <td className="py-2 text-right tabular-nums whitespace-nowrap">{formatAUD(disc)}</td>
+                                <td className="py-2 text-right tabular-nums font-semibold whitespace-nowrap">{formatAUD(final)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                        <tfoot>
+                          <tr className="border-t border-slate-200 dark:border-slate-800">
+                            <td className="py-2 pr-2 whitespace-nowrap font-semibold">Total</td>
+                            <td className="py-2 text-right tabular-nums font-semibold whitespace-nowrap">{formatNumber(totals.sold)}</td>
+                            <td className="py-2 text-right tabular-nums font-semibold whitespace-nowrap">{formatNumber(totals.orders)}</td>
+                            <td className="py-2 text-right tabular-nums font-semibold whitespace-nowrap">{formatAUD(totals.gross)}</td>
+                            <td className="py-2 text-right tabular-nums font-semibold whitespace-nowrap">{formatAUD(totals.disc)}</td>
+                            <td className="py-2 text-right tabular-nums font-semibold whitespace-nowrap">{formatAUD(totals.final)}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </>
+                );
+              })()}
               {(perDayHistory?.length ?? 0) > historyCount ? (
                 <button
                   type="button"
