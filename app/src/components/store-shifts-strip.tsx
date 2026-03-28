@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Coffee, X } from "lucide-react";
+import { CheckCircle2, Circle, Coffee, X } from "lucide-react";
 import { formatAUD } from "@/lib/format";
 import useSWR from "swr";
 
@@ -13,6 +13,7 @@ export type ShiftPerson = {
   isActiveNow: boolean;
   isOnBreak: boolean;
   timeLabel: string;
+  shiftCost?: number;
   breaks?: string[];
   startImage?: string | null;
   endImage?: string | null;
@@ -93,6 +94,36 @@ export function StoreShiftsStrip({
     },
     { revalidateOnFocus: false }
   );
+
+  const tasksKey = employeeId ? (["tasks-employee", companyId, employeeId, date] as const) : null;
+  const { data: tasksData, error: tasksError, isLoading: tasksLoading } = useSWR<any>(
+    tasksKey,
+    async () => {
+      const url = new URL("/api/data/dashify-tasks.php", window.location.origin);
+      url.searchParams.set("company_id", String(companyId));
+      url.searchParams.set("employee_id", String(employeeId));
+      url.searchParams.set("date_from", date);
+      url.searchParams.set("date_to", date);
+      const res = await fetch(url.toString());
+      const json = (await res.json()) as any;
+      if (!res.ok || !json?.success) throw new Error(json?.error ?? "Load failed");
+      return json;
+    },
+    { revalidateOnFocus: false }
+  );
+
+  const taskGroups = useMemo(() => normalizeTaskGroups(tasksData), [tasksData]);
+  const taskTotals = useMemo(() => {
+    let total = 0;
+    let done = 0;
+    for (const g of taskGroups) {
+      for (const t of g.tasks) {
+        total += 1;
+        if (t.done) done += 1;
+      }
+    }
+    return { total, done };
+  }, [taskGroups]);
 
   return (
     <div className="mt-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-950/40">
@@ -268,6 +299,11 @@ export function StoreShiftsStrip({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold">{modalTitle}</div>
+                {typeof selected.shiftCost === "number" && Number.isFinite(selected.shiftCost) ? (
+                  <div className="mt-0.5 text-xs font-semibold text-slate-900 dark:text-white tabular-nums">
+                    {formatAUD(selected.shiftCost)} shift cost
+                  </div>
+                ) : null}
                 <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{selected.timeLabel}</div>
                 {selected.breaks?.length ? (
                   <div className="mt-1 flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
@@ -312,6 +348,88 @@ export function StoreShiftsStrip({
                   )}
                 </div>
               </div>
+            </div>
+
+            <div className="mt-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">Tasks</div>
+                {taskTotals.total ? (
+                  <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
+                    {taskTotals.done}/{taskTotals.total} done
+                  </div>
+                ) : null}
+              </div>
+
+              {tasksLoading ? (
+                <div className="mt-2 space-y-2">
+                  <div className="h-12 animate-pulse rounded-xl bg-slate-200/40 dark:bg-slate-800/40" />
+                  <div className="h-12 animate-pulse rounded-xl bg-slate-200/40 dark:bg-slate-800/40" />
+                </div>
+              ) : tasksError ? (
+                <div className="mt-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-900 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-100">
+                  Failed to load tasks: {(tasksError as any)?.message ?? "Unknown error"}
+                </div>
+              ) : !taskGroups.length ? (
+                <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">No tasks found for this employee on {date}.</div>
+              ) : (
+                <div className="mt-2 space-y-3">
+                  {taskGroups.map((g) => (
+                    <div key={g.title} className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+                      <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">{g.title}</div>
+                      <div className="mt-2 space-y-2">
+                        {g.tasks.map((t) => (
+                          <div key={t.key} className="rounded-lg bg-slate-50 p-2 dark:bg-slate-950/40">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex min-w-0 items-start gap-2">
+                                {t.done ? (
+                                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                                ) : (
+                                  <Circle className="mt-0.5 h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
+                                )}
+                                <div className="min-w-0">
+                                  <div className="truncate text-xs font-semibold text-slate-900 dark:text-white">{t.name}</div>
+                                  {t.subtitle ? <div className="mt-0.5 truncate text-[11px] text-slate-500 dark:text-slate-400">{t.subtitle}</div> : null}
+                                  {t.metaSub ? <div className="mt-0.5 truncate text-[11px] text-slate-500 dark:text-slate-400">{t.metaSub}</div> : null}
+                                </div>
+                              </div>
+                              {t.metaRight ? (
+                                <div className="shrink-0 text-right">
+                                  <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums">{t.metaRight}</div>
+                                  {t.isMulti && t.items.length ? (
+                                    <div className="mt-1 h-1.5 w-20 overflow-hidden rounded-full bg-slate-200/60 dark:bg-slate-800/60">
+                                      <div
+                                        className="h-full rounded-full bg-emerald-600/70 dark:bg-emerald-400/70"
+                                        style={{
+                                          width: `${Math.round((t.items.filter((i) => i.done).length / Math.max(1, t.items.length)) * 100)}%`
+                                        }}
+                                      />
+                                    </div>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                            </div>
+
+                            {t.isMulti && t.items.length ? (
+                              <div className="mt-2 grid grid-cols-1 gap-1">
+                                {t.items.map((it) => (
+                                  <div key={it.key} className="flex items-start gap-2 text-[11px] text-slate-700 dark:text-slate-200">
+                                    {it.done ? (
+                                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                                    ) : (
+                                      <Circle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-slate-500" />
+                                    )}
+                                    <div className="min-w-0 flex-1 truncate">{it.name}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="mt-4">
@@ -386,4 +504,162 @@ function fmtLogTime(s: string) {
   const dt = new Date(cleaned.replace(" ", "T") + "Z");
   if (!Number.isFinite(dt.getTime())) return s;
   return new Intl.DateTimeFormat("en-AU", { hour: "2-digit", minute: "2-digit" }).format(dt);
+}
+
+type NormalizedTaskItem = { key: string; name: string; done: boolean; value?: string };
+type NormalizedTask = {
+  key: string;
+  name: string;
+  done: boolean;
+  isMulti: boolean;
+  subtitle?: string;
+  metaRight?: string;
+  metaSub?: string;
+  items: NormalizedTaskItem[];
+};
+type NormalizedTaskGroup = { title: string; tasks: NormalizedTask[] };
+
+function truthyDone(v: unknown): boolean {
+  if (v === true) return true;
+  if (v === 1) return true;
+  if (typeof v === "string") {
+    const s = v.trim().toLowerCase();
+    return s === "1" || s === "true" || s === "yes" || s === "done" || s === "completed" || s === "complete";
+  }
+  return false;
+}
+
+function asArray(v: unknown): any[] {
+  return Array.isArray(v) ? v : [];
+}
+
+function pickStr(obj: any, keys: string[]): string {
+  for (const k of keys) {
+    const v = obj?.[k];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return "";
+}
+
+function normalizeTask(raw: any, fallbackKey: string): NormalizedTask {
+  const name = pickStr(raw, ["title", "name", "task_name", "label", "task"]) || `Task ${fallbackKey}`;
+
+  const taskStatus = pickStr(raw, ["task_status", "status", "state"]);
+  const taskType = pickStr(raw, ["task_type", "type"]);
+
+  const categoryName =
+    (typeof raw?.category === "object" && raw.category ? pickStr(raw.category, ["name", "title"]) : "") ||
+    pickStr(raw, ["category", "group", "task_group"]);
+
+  const taskNumber = pickStr(raw, ["task_number", "number", "code"]);
+  const createdAt = pickStr(raw, ["created_at", "createdAt", "date"]);
+
+  const isMulti = taskType.toLowerCase().includes("multi");
+  const timeLabel = createdAt ? fmtTaskTime(createdAt) : "";
+  const metaSub = [taskNumber, taskStatus, timeLabel].filter(Boolean).join(" • ");
+
+  // API shape: task_items[].value is "1" when completed by the employee.
+  const childCandidates =
+    raw?.task_items ??
+    raw?.items ??
+    raw?.children ??
+    raw?.sub_tasks ??
+    raw?.subtasks ??
+    raw?.multi_task_items ??
+    raw?.multi_tasks ??
+    raw?.tasks;
+  const children = asArray(childCandidates)
+    .filter((c) => c && typeof c === "object")
+    .map((c: any, idx: number) => {
+      const childName = pickStr(c, ["title", "name", "task_name", "label", "item"]) || `Item ${idx + 1}`;
+      const childValue = typeof c?.value === "string" || typeof c?.value === "number" ? String(c.value) : "";
+      const childDone = truthyDone(childValue || (c?.done ?? c?.completed ?? c?.is_completed ?? c?.status));
+      return { key: String(c?.id ?? `${fallbackKey}-item-${idx}`), name: childName, done: childDone, value: childValue || undefined };
+    });
+
+  const progressText = children.length ? `${children.filter((c) => c.done).length}/${children.length}` : "";
+  // Single tasks: tick already indicates completion; keep the UI minimal.
+  // - No status ("Completed") and no task number.
+  const metaRight = isMulti ? progressText : timeLabel;
+
+  const doneSingle = truthyDone(raw?.done ?? raw?.completed ?? raw?.is_completed ?? raw?.value ?? taskStatus) || taskStatus.toLowerCase() === "completed";
+  const doneMulti = children.length ? children.every((c) => c.done) : false;
+
+  const subtitle = isMulti
+    ? categoryName
+    : (children[0]?.name ?? "");
+
+  return {
+    key: String(raw?.id ?? fallbackKey),
+    name,
+    done: isMulti ? doneMulti : doneSingle,
+    isMulti,
+    subtitle: subtitle || undefined,
+    metaRight: metaRight || undefined,
+    metaSub: (isMulti ? metaSub : "") || undefined,
+    items: children
+  };
+}
+
+function normalizeTaskGroups(resp: any): NormalizedTaskGroup[] {
+  const root = resp?.data ?? resp ?? null;
+  if (!root) return [];
+
+  // Primary API shape: { success, filters, data: Task[] }
+  if (Array.isArray(root)) {
+    const tasks = root.filter((t) => t && typeof t === "object") as any[];
+    if (!tasks.length) return [];
+
+    const single = tasks.filter((t) => String(t?.task_type ?? "").toLowerCase().includes("single"));
+    const multi = tasks.filter((t) => String(t?.task_type ?? "").toLowerCase().includes("multi"));
+    const other = tasks.filter((t) => !single.includes(t) && !multi.includes(t));
+
+    const sortByCreatedDesc = (a: any, b: any) => String(b?.created_at ?? "").localeCompare(String(a?.created_at ?? ""));
+
+    const groups: NormalizedTaskGroup[] = [];
+    if (single.length) groups.push({ title: "Single tasks", tasks: [...single].sort(sortByCreatedDesc).map((t, i) => normalizeTask(t, `single-${i}`)) });
+    if (multi.length) groups.push({ title: "Multi tasks", tasks: [...multi].sort(sortByCreatedDesc).map((t, i) => normalizeTask(t, `multi-${i}`)) });
+    if (other.length) groups.push({ title: "Tasks", tasks: [...other].sort(sortByCreatedDesc).map((t, i) => normalizeTask(t, `task-${i}`)) });
+    return groups;
+  }
+
+  const single = asArray(root?.single_tasks ?? root?.singleTasks ?? root?.single ?? root?.tasks_single);
+  const multi = asArray(root?.multi_tasks ?? root?.multiTasks ?? root?.multi ?? root?.tasks_multi);
+
+  if (single.length || multi.length) {
+    const groups: NormalizedTaskGroup[] = [];
+    if (single.length) groups.push({ title: "Single tasks", tasks: single.map((t, i) => normalizeTask(t, `single-${i}`)) });
+    if (multi.length) groups.push({ title: "Multi tasks", tasks: multi.map((t, i) => normalizeTask(t, `multi-${i}`)) });
+    return groups;
+  }
+
+  // Fallback: find a tasks array in common keys
+  const candidateArrays = [
+    root?.tasks,
+    root?.data,
+    root?.rows,
+    root?.items,
+    resp?.tasks
+  ];
+  const arr = candidateArrays.find((v) => Array.isArray(v)) as any[] | undefined;
+  if (!arr) return [];
+
+  return [{ title: "Tasks", tasks: arr.map((t, i) => normalizeTask(t, `task-${i}`)) }];
+}
+
+function fmtTaskTime(value: string): string {
+  // API now returns Sydney-local "YYYY-MM-DD HH:mm:ss".
+  // Display h:mm AM/PM.
+  if (!value) return "";
+  const s = String(value).trim();
+  const parts = s.split(" ");
+  const timePart = parts.length >= 2 ? (parts[1] ?? "") : s.includes("T") ? (s.split("T")[1] ?? "") : s;
+  const hhmm = timePart.slice(0, 5);
+  const [hhStr, mmStr] = hhmm.split(":");
+  const hh = Number(hhStr);
+  const mm = Number(mmStr);
+  if (!Number.isFinite(hh) || !Number.isFinite(mm)) return hhmm;
+  const suffix = hh >= 12 ? "PM" : "AM";
+  const hour12 = ((hh + 11) % 12) + 1;
+  return `${hour12}:${String(mm).padStart(2, "0")} ${suffix}`;
 }

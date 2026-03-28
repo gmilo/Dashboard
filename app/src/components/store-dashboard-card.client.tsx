@@ -66,6 +66,7 @@ type ShiftsResponse = {
     employee_id: number;
     name: string;
     avatar?: string | null;
+    total_cost?: number | string | null;
     shifts: Array<{
       time_start?: string;
       time_end?: string;
@@ -308,6 +309,7 @@ export function StoreDashboardCard({ store, date }: { store: Store; date: string
       const breaks = s.shifts?.[0]?.breaks ?? [];
       const isOnBreak = breaks.some((b) => b.time_end === "On Break");
       const { first, completedBreaks, ongoingBreaks } = summarizeClocks(s.shifts);
+      const shiftCost = Number((s as any).total_cost ?? (s as any).shift_cost ?? 0);
       return {
         employeeId: s.employee_id,
         name: s.name,
@@ -315,6 +317,7 @@ export function StoreDashboardCard({ store, date }: { store: Store; date: string
         isActiveNow: true,
         isOnBreak,
         timeLabel: formatTimeLabel(first?.time_start, first?.time_end),
+        shiftCost: Number.isFinite(shiftCost) && shiftCost ? shiftCost : undefined,
         breaks: [...ongoingBreaks, ...completedBreaks],
         startImage: first?.image_start ?? null,
         endImage: first?.image_end ?? null
@@ -325,6 +328,7 @@ export function StoreDashboardCard({ store, date }: { store: Store; date: string
     .filter((s) => s.type === "active" && (s.shifts?.[0]?.time_end ?? "") !== "ACTIVE" && !!s.shifts?.[0]?.time_end)
     .map((s) => {
       const { first, start, end, completedBreaks, ongoingBreaks } = summarizeClocks(s.shifts);
+      const shiftCost = Number((s as any).total_cost ?? (s as any).shift_cost ?? 0);
       return {
         employeeId: s.employee_id,
         name: s.name,
@@ -332,6 +336,7 @@ export function StoreDashboardCard({ store, date }: { store: Store; date: string
         isActiveNow: false,
         isOnBreak: false,
         timeLabel: start && end ? `${start}–${end}` : "",
+        shiftCost: Number.isFinite(shiftCost) && shiftCost ? shiftCost : undefined,
         breaks: [...ongoingBreaks, ...completedBreaks],
         startImage: first?.image_start ?? null,
         endImage: first?.image_end ?? null
@@ -342,6 +347,7 @@ export function StoreDashboardCard({ store, date }: { store: Store; date: string
     .filter((s) => s.type === "scheduled")
     .map((s) => {
       const first = s.shifts?.[0];
+      const shiftCost = Number((s as any).total_cost ?? (s as any).shift_cost ?? 0);
       return {
         employeeId: s.employee_id,
         name: s.name,
@@ -349,6 +355,7 @@ export function StoreDashboardCard({ store, date }: { store: Store; date: string
         isActiveNow: false,
         isOnBreak: false,
         timeLabel: first ? `${first.time_start}–${first.time_end}` : "",
+        shiftCost: Number.isFinite(shiftCost) && shiftCost ? shiftCost : undefined,
         breaks: [],
         startImage: null,
         endImage: null
