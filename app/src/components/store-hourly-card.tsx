@@ -512,11 +512,23 @@ function SummaryModal({
                               <div className="text-[11px] font-semibold">{day}</div>
                               <div className="text-[11px] font-semibold tabular-nums">{formatAUD(final)}</div>
                             </div>
-                            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-600 dark:text-slate-300">
-                              <span className="whitespace-nowrap">Sold {formatNumber(sold)}</span>
-                              <span className="whitespace-nowrap">Orders {formatNumber(orders)}</span>
-                              <span className="whitespace-nowrap">Gross {formatAUD(gross)}</span>
-                              <span className="whitespace-nowrap">Disc {formatAUD(disc)}</span>
+                            <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-slate-600 dark:text-slate-300">
+                              <div className="flex items-baseline justify-between gap-2">
+                                <span>Sold</span>
+                                <span className="tabular-nums">{formatNumber(sold)}</span>
+                              </div>
+                              <div className="flex items-baseline justify-between gap-2">
+                                <span>Orders</span>
+                                <span className="tabular-nums">{formatNumber(orders)}</span>
+                              </div>
+                              <div className="flex items-baseline justify-between gap-2">
+                                <span>Gross</span>
+                                <span className="tabular-nums">{formatAUD(gross)}</span>
+                              </div>
+                              <div className="flex items-baseline justify-between gap-2">
+                                <span>Disc</span>
+                                <span className="tabular-nums">{formatAUD(disc)}</span>
+                              </div>
                             </div>
                           </div>
                         );
@@ -527,11 +539,23 @@ function SummaryModal({
                           <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">Total</div>
                           <div className="text-[11px] font-semibold tabular-nums text-slate-700 dark:text-slate-200">{formatAUD(totals.final)}</div>
                         </div>
-                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-600 dark:text-slate-300">
-                          <span className="whitespace-nowrap">Sold {formatNumber(totals.sold)}</span>
-                          <span className="whitespace-nowrap">Orders {formatNumber(totals.orders)}</span>
-                          <span className="whitespace-nowrap">Gross {formatAUD(totals.gross)}</span>
-                          <span className="whitespace-nowrap">Disc {formatAUD(totals.disc)}</span>
+                        <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-slate-600 dark:text-slate-300">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span>Sold</span>
+                            <span className="tabular-nums">{formatNumber(totals.sold)}</span>
+                          </div>
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span>Orders</span>
+                            <span className="tabular-nums">{formatNumber(totals.orders)}</span>
+                          </div>
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span>Gross</span>
+                            <span className="tabular-nums">{formatAUD(totals.gross)}</span>
+                          </div>
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span>Disc</span>
+                            <span className="tabular-nums">{formatAUD(totals.disc)}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
