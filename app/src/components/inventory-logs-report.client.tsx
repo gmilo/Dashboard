@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { addDaysISO, startOfMonthISO, startOfWeekISO } from "@/lib/dates";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type InventoryLog = any;
 
@@ -43,6 +43,7 @@ function badge(type: string) {
 }
 
 export function InventoryLogsReport({ todayISO }: { todayISO: string }) {
+  const router = useRouter();
   const [preset, setPreset] = useState<Preset>("today");
   const [customFrom, setCustomFrom] = useState<string>(todayISO);
   const [customTo, setCustomTo] = useState<string>(todayISO);
@@ -163,16 +164,15 @@ export function InventoryLogsReport({ todayISO }: { todayISO: string }) {
                 const empName = employee.name_preferred || `${employee.name_first ?? ""} ${employee.name_last ?? ""}`.trim() || "—";
                 const company = log.company ?? log.company_name ?? `Company ${log.company_id ?? ""}`;
                 const invId = inv.id ?? log.inventory_id ?? log.inventoryId ?? null;
+                const href = invId ? `/inventory/items/${invId}` : "";
                 return (
-                  <tr key={String(log.id ?? `${type}-${log.created_at}-${inv.name}`)}>
+                  <tr
+                    key={String(log.id ?? `${type}-${log.created_at}-${inv.name}`)}
+                    className={href ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-950/40" : ""}
+                    onClick={() => (href ? router.push(href) : null)}
+                  >
                     <td>
-                      {invId ? (
-                        <Link href={`/inventory/items/${invId}`} className="font-semibold text-sky-700 hover:underline dark:text-sky-300">
-                          {inv.name ?? "Unknown"}
-                        </Link>
-                      ) : (
-                        <div className="font-semibold">{inv.name ?? "Unknown"}</div>
-                      )}
+                      <div className="max-w-[220px] truncate font-semibold text-slate-900 dark:text-white">{inv.name ?? "Unknown"}</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400">Stock: {inv.quantity ?? "—"}</div>
                     </td>
                     <td className={`text-center font-semibold ${isAdd ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300"}`}>{qtyText}</td>

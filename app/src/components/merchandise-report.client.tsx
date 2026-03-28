@@ -228,7 +228,7 @@ export function MerchandiseReport({ todayISO }: { todayISO: string }) {
                   onClick={() => router.push(`/drinks/${r.product_id}`)}
                 >
                   <td>
-                    <div className="max-w-[240px] truncate font-semibold text-sky-700 dark:text-sky-300">{r.item_name}</div>
+                    <div className="max-w-[240px] truncate font-semibold text-slate-900 dark:text-white">{r.item_name}</div>
                     <div className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">{r.company}</div>
                   </td>
                   <td className="text-right tabular-nums font-semibold">{r.qty}</td>

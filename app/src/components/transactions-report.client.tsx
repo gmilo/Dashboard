@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { addDaysISO, startOfMonthISO, startOfWeekISO } from "@/lib/dates";
 import { X } from "lucide-react";
@@ -344,8 +345,6 @@ export function TransactionsReport({ todayISO, memberId }: { todayISO: string; m
                       <td>
                         {member ? (
                           (() => {
-                            const memberId = member?.id ?? "";
-                            const href = memberId ? `/members/${String(memberId)}` : "";
                             const content = (
                               <div className="flex min-w-0 items-center gap-2">
                                 <div className="h-8 w-8 overflow-hidden rounded-full bg-slate-200/60 dark:bg-slate-800/60">
@@ -363,13 +362,7 @@ export function TransactionsReport({ todayISO, memberId }: { todayISO: string; m
                               </div>
                             );
 
-                            return href ? (
-                              <Link href={href} onClick={(e) => e.stopPropagation()} className="block">
-                                {content}
-                              </Link>
-                            ) : (
-                              content
-                            );
+                            return content;
                           })()
                         ) : (
                           <span className="text-xs text-slate-500 dark:text-slate-400">—</span>
@@ -564,6 +557,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function ItemRow({ item, level }: { item: TransactionItem; level: number }) {
+  const router = useRouter();
   const qty = toNumber(item.quantity);
   const unit = toNumber(item.unit_price);
   const productId = String(item.product_id ?? "").trim();
@@ -590,9 +584,19 @@ function ItemRow({ item, level }: { item: TransactionItem; level: number }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900" style={{ marginLeft: level ? level * 12 : 0 }}>
       {productId ? (
-        <Link href={`/drinks/${productId}`} className="block hover:underline">
+        <div
+          role="button"
+          tabIndex={0}
+          className="block cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-400/40"
+          onClick={() => router.push(`/drinks/${productId}`)}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" && e.key !== " ") return;
+            e.preventDefault();
+            router.push(`/drinks/${productId}`);
+          }}
+        >
           {content}
-        </Link>
+        </div>
       ) : (
         content
       )}

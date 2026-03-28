@@ -15,6 +15,13 @@ body {
   @apply bg-slate-950 text-slate-50;
 }
 
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: inherit;
+  }
+}
+
 @layer components {
   .scroll-table {
     @apply w-max min-w-full table-auto text-[11px];

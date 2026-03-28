@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { getGravatarUrl } from "@/lib/gravatar";
 
@@ -49,6 +49,7 @@ function fmtDate(value?: string) {
 }
 
 export function MembersReport({ companies }: { companies: Company[] }) {
+  const router = useRouter();
   const sortedCompanies = useMemo(() => [...companies].sort((a, b) => a.name.localeCompare(b.name)), [companies]);
   const [companyId, setCompanyId] = useState<string>(sortedCompanies[0] ? String(sortedCompanies[0].id) : "");
 
@@ -119,6 +120,7 @@ export function MembersReport({ companies }: { companies: Company[] }) {
             <tbody>
               {rows.map((m) => {
                 const id = m.id ?? "";
+                const href = id ? `/members/${String(id)}` : "";
                 const name = fullName(m) || (m.email ?? "") || "Member";
                 const memberNo =
                   typeof m.member_no === "string" || typeof m.member_no === "number" ? String(m.member_no) : "";
@@ -128,31 +130,22 @@ export function MembersReport({ companies }: { companies: Company[] }) {
                 const orders = toNumber(m.sales_count);
                 const totalSpend = moneyAUD(m.total_spend);
                 return (
-                  <tr key={`${m.company_id ?? ""}:${String(id)}`}>
+                  <tr
+                    key={`${m.company_id ?? ""}:${String(id)}`}
+                    className={href ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-950/40" : ""}
+                    onClick={() => (href ? router.push(href) : null)}
+                  >
                     <td>
-                      {id ? (
-                        <Link href={`/members/${String(id)}`} className="block min-w-0">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <div className="h-8 w-8 overflow-hidden rounded-full bg-slate-200/60 dark:bg-slate-800/60">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={getGravatarUrl(email, 40)} alt={name} className="h-8 w-8 object-cover" />
-                            </div>
-                            <div className="min-w-0 max-w-[180px]">
-                              <div className="truncate font-medium">{name}</div>
-                              {memberNo ? (
-                                <div className="whitespace-nowrap text-xs text-slate-500 dark:text-slate-400">#{memberNo}</div>
-                              ) : null}
-                            </div>
-                          </div>
-                        </Link>
-                      ) : (
-                        <div className="min-w-0">
-                          <div className="truncate font-medium">{name}</div>
-                          {memberNo ? (
-                            <div className="whitespace-nowrap text-xs text-slate-500 dark:text-slate-400">#{memberNo}</div>
-                          ) : null}
+                      <div className="flex min-w-0 items-center gap-2">
+                        <div className="h-8 w-8 overflow-hidden rounded-full bg-slate-200/60 dark:bg-slate-800/60">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={getGravatarUrl(email, 40)} alt={name} className="h-8 w-8 object-cover" />
                         </div>
-                      )}
+                        <div className="min-w-0 max-w-[180px]">
+                          <div className="truncate font-medium">{name}</div>
+                          {memberNo ? <div className="whitespace-nowrap text-xs text-slate-500 dark:text-slate-400">#{memberNo}</div> : null}
+                        </div>
+                      </div>
                     </td>
                     {showCompanyColumn ? (
                       <td>
