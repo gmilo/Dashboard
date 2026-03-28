@@ -98,7 +98,7 @@ export function StoreShiftsStrip({
     <div className="mt-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-950/40">
       <div className="flex items-center justify-between gap-2">
         <div className="text-xs text-slate-500 dark:text-slate-400">Shifts</div>
-        <div className="text-xs text-slate-600 dark:text-slate-300">{formatAUD(totalCost)} cost</div>
+        <div className="text-sm font-semibold text-slate-900 dark:text-white tabular-nums">{formatAUD(totalCost)} cost</div>
       </div>
 
       <div className="mt-2 flex items-center justify-between gap-3">

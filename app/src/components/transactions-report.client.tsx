@@ -160,8 +160,10 @@ export function TransactionsReport({ todayISO, memberId }: { todayISO: string; m
       .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
     return rows;
   }, [data?.meta?.payment_types]);
-  const rows = data?.data ?? [];
-  const sorted = useMemo(() => [...rows].sort((a, b) => (b.sale.id ?? 0) - (a.sale.id ?? 0)), [rows]);
+  const sorted = useMemo(() => {
+    const rows = data?.data ?? [];
+    return [...rows].sort((a, b) => (b.sale.id ?? 0) - (a.sale.id ?? 0));
+  }, [data?.data]);
   const visible = sorted.slice(0, visibleCount);
   const showCompanyColumn = !companyId;
   const showMemberColumn = !fixedMemberId;

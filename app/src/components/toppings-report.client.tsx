@@ -64,8 +64,10 @@ export function ToppingsReport({ todayISO }: { todayISO: string }) {
 
   const assignedCompanyCount = data?.assignedCompanyCount ?? 0;
   const companies = useMemo(() => [...(data?.companies ?? [])].sort((a, b) => a.name.localeCompare(b.name)), [data?.companies]);
-  const rows = data?.data ?? [];
-  const sorted = useMemo(() => [...rows].sort((a, b) => (b.qty ?? 0) - (a.qty ?? 0)), [rows]);
+  const sorted = useMemo(() => {
+    const rows = data?.data ?? [];
+    return [...rows].sort((a, b) => (b.qty ?? 0) - (a.qty ?? 0));
+  }, [data?.data]);
   const visible = sorted.slice(0, visibleCount);
 
   if (isLoading) {

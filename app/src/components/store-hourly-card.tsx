@@ -479,7 +479,7 @@ function SummaryModal({
               </div>
               {(() => {
                 const visible = (perDayHistory ?? []).slice(0, historyCount);
-                const totals = visible.reduce(
+                const totals = visible.reduce<{ sold: number; orders: number; gross: number; disc: number; final: number }>(
                   (acc, d) => {
                     const sold = typeof d.sold === "number" ? d.sold : Number(d.sold ?? 0);
                     const orders = typeof d.sales_count === "number" ? d.sales_count : Number(d.sales_count ?? 0);
