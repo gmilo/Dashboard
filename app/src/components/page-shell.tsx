@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { BottomNav } from "@/components/bottom-nav";
-import { TopBarUser } from "@/components/top-bar-user.client";
+import { TopBarUser } from "@/components/top-bar-user";
 
 export function PageShell({ title, headerRight, children }: { title: string; headerRight?: ReactNode; children: ReactNode }) {
   return (

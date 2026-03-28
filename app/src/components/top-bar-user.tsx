@@ -1,19 +1,13 @@
-"use client";
-
 import Link from "next/link";
-import { useUser } from "@auth0/nextjs-auth0/client";
+import { getSession } from "@auth0/nextjs-auth0";
 
-export function TopBarUser() {
-  const { user, isLoading } = useUser();
-
-  if (isLoading) {
-    return <div className="h-8 w-8 rounded-full bg-slate-200/70 dark:bg-slate-800" aria-hidden />;
-  }
-
+export async function TopBarUser() {
+  const session = await getSession();
+  const user = session?.user;
   if (!user) return null;
 
   const picture = typeof user.picture === "string" ? user.picture : "";
-  const alt = typeof user.name === "string" ? user.name : "User";
+  const alt = typeof user.name === "string" ? user.name : typeof user.email === "string" ? user.email : "User";
 
   return (
     <Link href="/settings" className="flex items-center" aria-label="Open settings">
@@ -28,4 +22,3 @@ export function TopBarUser() {
     </Link>
   );
 }
-
