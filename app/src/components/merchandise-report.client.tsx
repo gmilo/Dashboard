@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { addDaysISO, startOfMonthISO, startOfWeekISO } from "@/lib/dates";
+import { useRouter } from "next/navigation";
 
 type Row = {
   company: string;
@@ -33,6 +33,7 @@ function money(n: number) {
 }
 
 export function MerchandiseReport({ todayISO }: { todayISO: string }) {
+  const router = useRouter();
   const [preset, setPreset] = useState<Preset>("today");
   const [customFrom, setCustomFrom] = useState<string>(todayISO);
   const [customTo, setCustomTo] = useState<string>(todayISO);
@@ -211,27 +212,25 @@ export function MerchandiseReport({ todayISO }: { todayISO: string }) {
         </div>
       ) : (
         <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <table className="min-w-[980px] w-full text-sm">
+          <table className="min-w-[720px] w-full text-sm">
             <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
               <tr>
                 <th className="px-3 py-2 text-left font-medium">Product</th>
-                <th className="px-3 py-2 text-left font-medium">Company</th>
-                <th className="px-3 py-2 text-left font-medium">Tag</th>
                 <th className="px-3 py-2 text-right font-medium">Qty</th>
                 <th className="px-3 py-2 text-right font-medium">Amount</th>
               </tr>
             </thead>
             <tbody>
               {visibleRows.map((r) => (
-                <tr key={`${r.company_id}-${r.product_id}`} className="border-t border-slate-200 dark:border-slate-800">
+                <tr
+                  key={`${r.company_id}-${r.product_id}`}
+                  className="cursor-pointer border-t border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950/40"
+                  onClick={() => router.push(`/drinks/${r.product_id}`)}
+                >
                   <td className="px-3 py-2">
-                    <Link className="font-semibold text-sky-700 hover:underline dark:text-sky-300" href={`/drinks/${r.product_id}`}>
-                      {r.item_name}
-                    </Link>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">{r.category}</div>
+                    <div className="font-semibold text-sky-700 dark:text-sky-300">{r.item_name}</div>
+                    <div className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">{r.company}</div>
                   </td>
-                  <td className="px-3 py-2">{r.company}</td>
-                  <td className="px-3 py-2">{r.tag}</td>
                   <td className="px-3 py-2 text-right tabular-nums font-semibold">{r.qty}</td>
                   <td className="px-3 py-2 text-right tabular-nums font-semibold">{money(r.amount)}</td>
                 </tr>

@@ -105,15 +105,15 @@ export function InventoryValidation({ todayISO }: { todayISO: string }) {
         </div>
       ) : (
         <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <table className="min-w-[980px] w-full text-sm">
+          <table className="min-w-[920px] w-full table-fixed text-sm">
             <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
               <tr>
-                <th className="px-3 py-2 text-left font-medium">Item</th>
-                <th className="px-3 py-2 text-left font-medium">Validated</th>
-                <th className="px-3 py-2 text-center font-medium">Stock</th>
-                <th className="px-3 py-2 text-center font-medium">Days</th>
-                <th className="px-3 py-2 text-left font-medium">Last validated</th>
-                <th className="px-3 py-2 text-left font-medium">Validated by</th>
+                <th className="w-1/2 px-3 py-2 text-left font-medium">Item</th>
+                <th className="w-[96px] whitespace-nowrap px-3 py-2 text-left font-medium">Status</th>
+                <th className="w-[72px] whitespace-nowrap px-3 py-2 text-center font-medium">Stock</th>
+                <th className="w-[72px] whitespace-nowrap px-3 py-2 text-center font-medium">Days</th>
+                <th className="w-[150px] whitespace-nowrap px-3 py-2 text-left font-medium">Last</th>
+                <th className="w-[200px] px-3 py-2 text-left font-medium">By</th>
               </tr>
             </thead>
             <tbody>

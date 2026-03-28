@@ -109,7 +109,7 @@ function flattenItems(items: TransactionItem[]): TransactionItem[] {
   return out;
 }
 
-export function TransactionsReport({ todayISO }: { todayISO: string }) {
+export function TransactionsReport({ todayISO, memberId }: { todayISO: string; memberId?: string | number }) {
   const [preset, setPreset] = useState<Preset>("today");
   const [customFrom, setCustomFrom] = useState<string>(todayISO);
   const [customTo, setCustomTo] = useState<string>(todayISO);
@@ -119,6 +119,7 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
   const [paymentType, setPaymentType] = useState<string>("");
   const [visibleCount, setVisibleCount] = useState<number>(50);
   const [selected, setSelected] = useState<Transaction | null>(null);
+  const fixedMemberId = memberId !== undefined && memberId !== null && String(memberId).trim() ? String(memberId).trim() : "";
 
   const range = useMemo(() => {
     if (preset === "today") return { from: todayISO, to: todayISO };
@@ -131,7 +132,7 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
     return { from: customFrom || todayISO, to: customTo || todayISO };
   }, [preset, todayISO, customFrom, customTo]);
 
-  const key = ["transactions", range.from, range.to, companyId, discountOnly ? "1" : "0", status, paymentType] as const;
+  const key = ["transactions", range.from, range.to, companyId, discountOnly ? "1" : "0", status, paymentType, fixedMemberId] as const;
 
   const { data, error, isLoading } = useSWR<TransactionsResponse>(key, async () => {
     const url = new URL("/api/transactions", window.location.origin);
@@ -142,6 +143,7 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
     if (discountOnly) url.searchParams.set("discount", "1");
     if (status) url.searchParams.set("status", status);
     if (paymentType) url.searchParams.set("payment_type", paymentType);
+    if (fixedMemberId) url.searchParams.set("member_id", fixedMemberId);
     const res = await fetch(url.toString());
     const json = (await res.json()) as TransactionsResponse;
     if (!res.ok || !json.success) throw new Error(json.error ?? "Load failed");
@@ -162,6 +164,7 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
   const sorted = useMemo(() => [...rows].sort((a, b) => (b.sale.id ?? 0) - (a.sale.id ?? 0)), [rows]);
   const visible = sorted.slice(0, visibleCount);
   const showCompanyColumn = !companyId;
+  const showMemberColumn = !fixedMemberId;
 
   if (isLoading) {
     return (
@@ -298,12 +301,12 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
             <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
               <tr>
                 <th className="px-3 py-2 text-left font-medium">When</th>
-                {showCompanyColumn ? <th className="px-3 py-2 text-left font-medium">Company</th> : null}
                 <th className="px-3 py-2 text-left font-medium">Items</th>
-                <th className="px-3 py-2 text-left font-medium">Member</th>
+                {showMemberColumn ? <th className="px-3 py-2 text-left font-medium">Member</th> : null}
                 <th className="px-3 py-2 text-left font-medium">Payment</th>
                 <th className="px-3 py-2 text-left font-medium">Status</th>
                 <th className="px-3 py-2 text-right font-medium">Final</th>
+                {showCompanyColumn ? <th className="px-3 py-2 text-left font-medium">Company</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -331,31 +334,46 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
                         <div className="mt-0.5 whitespace-nowrap text-xs font-medium text-slate-500 dark:text-slate-400">{when.secondary}</div>
                       ) : null}
                     </td>
-                    {showCompanyColumn ? (
-                      <td className="px-3 py-2 align-top">
-                        <div className="font-medium">{t.sale.company_name ?? `Company ${t.sale.company_id}`}</div>
-                      </td>
-                    ) : null}
                     <td className="px-3 py-2 align-top">
                       <div className="text-sm">{itemSummary || "—"}</div>
                       {remaining ? <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">+{remaining} more</div> : null}
                     </td>
-                    <td className="px-3 py-2 align-top">
-                      {member ? (
-                        <div className="flex min-w-0 items-center gap-2">
-                          <div className="h-8 w-8 overflow-hidden rounded-full bg-slate-200/60 dark:bg-slate-800/60">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={getGravatarUrl(memberEmail, 40)} alt={memberName || memberEmail || "Member"} className="h-8 w-8 object-cover" />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-medium">{memberName || memberEmail || "Member"}</div>
-                            {memberNo ? <div className="whitespace-nowrap text-xs text-slate-500 dark:text-slate-400">#{memberNo}</div> : null}
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-500 dark:text-slate-400">—</span>
-                      )}
-                    </td>
+                    {showMemberColumn ? (
+                      <td className="px-3 py-2 align-top">
+                        {member ? (
+                          (() => {
+                            const memberId = member?.id ?? "";
+                            const href = memberId ? `/members/${String(memberId)}` : "";
+                            const content = (
+                              <div className="flex min-w-0 items-center gap-2">
+                                <div className="h-8 w-8 overflow-hidden rounded-full bg-slate-200/60 dark:bg-slate-800/60">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={getGravatarUrl(memberEmail, 40)}
+                                    alt={memberName || memberEmail || "Member"}
+                                    className="h-8 w-8 object-cover"
+                                  />
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="truncate text-sm font-medium">{memberName || memberEmail || "Member"}</div>
+                                  {memberNo ? <div className="whitespace-nowrap text-xs text-slate-500 dark:text-slate-400">#{memberNo}</div> : null}
+                                </div>
+                              </div>
+                            );
+
+                            return href ? (
+                              <Link href={href} onClick={(e) => e.stopPropagation()} className="block">
+                                {content}
+                              </Link>
+                            ) : (
+                              content
+                            );
+                          })()
+                        ) : (
+                          <span className="text-xs text-slate-500 dark:text-slate-400">—</span>
+                        )}
+                      </td>
+                    ) : null}
                     <td className="px-3 py-2 align-top">
                       {t.sale.payment_type ? (
                         <span className="inline-flex max-w-[180px] whitespace-nowrap rounded-full bg-slate-600/10 px-2 py-1 text-[11px] font-semibold text-slate-700 dark:bg-slate-500/10 dark:text-slate-200">
@@ -371,6 +389,11 @@ export function TransactionsReport({ todayISO }: { todayISO: string }) {
                       </span>
                     </td>
                     <td className="px-3 py-2 text-right align-top tabular-nums">{money(toNumber(t.sale.final_amount))}</td>
+                    {showCompanyColumn ? (
+                      <td className="px-3 py-2 align-top">
+                        <div className="font-medium">{t.sale.company_name ?? `Company ${t.sale.company_id}`}</div>
+                      </td>
+                    ) : null}
                   </tr>
                 );
               })}
@@ -468,23 +491,40 @@ function TransactionModal({ tx, onClose }: { tx: Transaction; onClose: () => voi
         </div>
 
         {member ? (
-          <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950/40">
-            <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Member</div>
-            <div className="mt-2 flex items-center gap-3">
-              <div className="h-10 w-10 overflow-hidden rounded-full bg-slate-200/60 dark:bg-slate-800/60">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={getGravatarUrl(memberEmail, 80)} alt={memberName || memberEmail || "Member"} className="h-10 w-10 object-cover" />
-              </div>
-              <div className="min-w-0">
-                <div className="truncate text-sm font-semibold">{memberName || memberEmail || "Member"}</div>
-                <div className="mt-0.5 flex flex-wrap gap-x-2 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
-                  {memberNo ? <span className="whitespace-nowrap">#{memberNo}</span> : null}
-                  {memberEmail ? <span className="truncate">{memberEmail}</span> : null}
-                  {typeof member?.mobile === "string" && member.mobile ? <span className="whitespace-nowrap">{member.mobile}</span> : null}
+          (() => {
+            const memberId = member?.id ?? "";
+            const memberHref = memberId ? `/members/${String(memberId)}` : "";
+            const content = (
+              <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950/40">
+                <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Member</div>
+                <div className="mt-2 flex items-center gap-3">
+                  <div className="h-10 w-10 overflow-hidden rounded-full bg-slate-200/60 dark:bg-slate-800/60">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={getGravatarUrl(memberEmail, 80)}
+                      alt={memberName || memberEmail || "Member"}
+                      className="h-10 w-10 object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold">{memberName || memberEmail || "Member"}</div>
+                    <div className="mt-0.5 flex flex-wrap gap-x-2 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
+                      {memberNo ? <span className="whitespace-nowrap">#{memberNo}</span> : null}
+                      {memberEmail ? <span className="truncate">{memberEmail}</span> : null}
+                      {typeof member?.mobile === "string" && member.mobile ? <span className="whitespace-nowrap">{member.mobile}</span> : null}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            );
+            return memberHref ? (
+              <Link href={memberHref} className="block rounded-2xl focus:outline-none focus:ring-2 focus:ring-slate-400/40">
+                {content}
+              </Link>
+            ) : (
+              content
+            );
+          })()
         ) : null}
 
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">

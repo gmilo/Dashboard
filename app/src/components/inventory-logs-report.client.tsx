@@ -144,12 +144,12 @@ export function InventoryLogsReport({ todayISO }: { todayISO: string }) {
             <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
               <tr>
                 <th className="px-3 py-2 text-left font-medium">Inventory</th>
-                {showCompany ? <th className="px-3 py-2 text-left font-medium">Company</th> : null}
                 <th className="px-3 py-2 text-center font-medium">Qty</th>
                 <th className="px-3 py-2 text-left font-medium">Employee</th>
                 <th className="px-3 py-2 text-left font-medium">Description</th>
                 <th className="px-3 py-2 text-left font-medium">Type</th>
                 <th className="px-3 py-2 text-left font-medium">Date</th>
+                {showCompany ? <th className="px-3 py-2 text-left font-medium">Company</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -175,7 +175,6 @@ export function InventoryLogsReport({ todayISO }: { todayISO: string }) {
                       )}
                       <div className="text-xs text-slate-500 dark:text-slate-400">Stock: {inv.quantity ?? "—"}</div>
                     </td>
-                    {showCompany ? <td className="px-3 py-2">{company}</td> : null}
                     <td className={`px-3 py-2 text-center font-semibold ${isAdd ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300"}`}>{qtyText}</td>
                     <td className="px-3 py-2">{empName}</td>
                     <td className="px-3 py-2">{String(log.description ?? "")}</td>
@@ -183,6 +182,7 @@ export function InventoryLogsReport({ todayISO }: { todayISO: string }) {
                       <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${badge(type)}`}>{type}</span>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">{fmtDateTime(String(log.created_at ?? ""))}</td>
+                    {showCompany ? <td className="px-3 py-2">{company}</td> : null}
                   </tr>
                 );
               })}

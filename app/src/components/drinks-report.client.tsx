@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { addDaysISO, startOfMonthISO, startOfWeekISO } from "@/lib/dates";
+import { useRouter } from "next/navigation";
 
 type DrinksRow = {
   company: string;
@@ -33,6 +33,7 @@ function money(n: number) {
 }
 
 export function DrinksReport({ todayISO }: { todayISO: string }) {
+  const router = useRouter();
   const [preset, setPreset] = useState<Preset>("today");
   const [customFrom, setCustomFrom] = useState<string>(todayISO);
   const [customTo, setCustomTo] = useState<string>(todayISO);
@@ -210,7 +211,6 @@ export function DrinksReport({ todayISO }: { todayISO: string }) {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
               <tr>
-                <th className="px-3 py-2 text-left font-medium">Company</th>
                 <th className="px-3 py-2 text-left font-medium">Product</th>
                 <th className="px-3 py-2 text-right font-medium">Qty</th>
                 <th className="px-3 py-2 text-right font-medium">Amount</th>
@@ -218,18 +218,14 @@ export function DrinksReport({ todayISO }: { todayISO: string }) {
             </thead>
             <tbody>
               {visibleRows.map((r) => (
-                <tr key={`${r.company_id}-${r.product_id}-${r.item_name}`} className="border-t border-slate-200 dark:border-slate-800">
-                  <td className="px-3 py-2 align-top">
-                    <div className="font-medium">{r.company}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">#{r.company_id}</div>
-                  </td>
+                <tr
+                  key={`${r.company_id}-${r.product_id}-${r.item_name}`}
+                  className="cursor-pointer border-t border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950/40"
+                  onClick={() => router.push(`/drinks/${r.product_id}`)}
+                >
                   <td className="px-3 py-2">
-                    <Link className="font-semibold text-sky-700 hover:underline dark:text-sky-300" href={`/drinks/${r.product_id}`}>
-                      {r.item_name}
-                    </Link>
-                    <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                      #{r.product_id} • {r.tag || r.category}
-                    </div>
+                    <div className="font-semibold text-sky-700 dark:text-sky-300">{r.item_name}</div>
+                    <div className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">{r.company}</div>
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">{r.qty}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{money(r.amount)}</td>

@@ -118,15 +118,22 @@ export async function GET(request: Request) {
   const assignedCompanyCount = allowedIds.size;
 
   const url = new URL(request.url);
-  const dateFrom = url.searchParams.get("date_from")?.trim() ?? "";
-  const dateTo = url.searchParams.get("date_to")?.trim() ?? "";
+  const dateRaw = url.searchParams.get("date")?.trim() ?? "";
+  let dateFrom = url.searchParams.get("date_from")?.trim() ?? "";
+  let dateTo = url.searchParams.get("date_to")?.trim() ?? "";
   const discount = url.searchParams.get("discount")?.trim() ?? "";
   const statusFilter = (url.searchParams.get("status") ?? "").trim().toLowerCase();
   const paymentTypeFilterRaw = (url.searchParams.get("payment_type") ?? "").trim();
+  const memberIdRaw = (url.searchParams.get("member_id") ?? "").trim();
   const productIdRaw = (url.searchParams.get("product_id") ?? "").trim();
   const companyIdRaw = (url.searchParams.get("company_id") ?? "").trim();
   const limitRaw = (url.searchParams.get("limit") ?? "0").trim();
   const limit = String(Math.max(0, Number(limitRaw) || 0));
+
+  if ((!dateFrom || !dateTo) && dateRaw) {
+    dateFrom = dateRaw;
+    dateTo = dateRaw;
+  }
 
   if (!dateFrom || !dateTo) {
     return NextResponse.json({ success: false, error: "Missing date_from/date_to" }, { status: 400 });
@@ -151,6 +158,7 @@ export async function GET(request: Request) {
   // NOTE: do NOT forward `status` to upstream because that endpoint disables date filtering when status is set.
   if (discount === "1" || discount.toLowerCase() === "true") upstreamUrl.searchParams.set("discount", "1");
   if (productIdRaw) upstreamUrl.searchParams.set("product_id", productIdRaw);
+  if (memberIdRaw) upstreamUrl.searchParams.set("member_id", memberIdRaw);
 
   if (companyIdRaw) {
     const requestedCompanyId = Number(companyIdRaw);
@@ -200,10 +208,12 @@ export async function GET(request: Request) {
       filters_used: {
         date_from: dateFrom,
         date_to: dateTo,
+        date: dateRaw || null,
         company_id: companyIdRaw ? Number(companyIdRaw) : null,
         discount: discount === "1" || discount.toLowerCase() === "true" ? 1 : null,
         status: statusFilter || null,
         payment_type: paymentTypeFilterRaw || null,
+        member_id: memberIdRaw || null,
         product_id: productIdRaw || null,
         limit: Number(limit)
       },

@@ -86,15 +86,15 @@ export function InventoryLowStock({ todayISO }: { todayISO: string }) {
         <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-900">No low stock items found.</div>
       ) : (
         <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <table className="min-w-[860px] w-full text-sm">
+          <table className="min-w-[860px] w-full table-fixed text-sm">
             <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
               <tr>
-                <th className="px-3 py-2 text-left font-medium">Item</th>
-                <th className="px-3 py-2 text-center font-medium">Store</th>
-                <th className="px-3 py-2 text-center font-medium">Total</th>
-                <th className="px-3 py-2 text-center font-medium">Pending</th>
-                <th className="px-3 py-2 text-left font-medium">Validated</th>
-                <th className="px-3 py-2 text-left font-medium">Expiry</th>
+                <th className="w-1/2 px-3 py-2 text-left font-medium">Item</th>
+                <th className="w-[72px] whitespace-nowrap px-3 py-2 text-center font-medium">Store</th>
+                <th className="w-[72px] whitespace-nowrap px-3 py-2 text-center font-medium">Total</th>
+                <th className="w-[88px] whitespace-nowrap px-3 py-2 text-center font-medium">Pending</th>
+                <th className="w-[110px] whitespace-nowrap px-3 py-2 text-left font-medium">Expiry</th>
+                <th className="w-[200px] whitespace-nowrap px-3 py-2 text-left font-medium">Validated</th>
               </tr>
             </thead>
             <tbody>
@@ -107,14 +107,14 @@ export function InventoryLowStock({ todayISO }: { todayISO: string }) {
                 const invId = item.reference_id ?? item.inventory_id ?? item.id ?? null;
                 return (
                   <tr key={String(item.id ?? `${item.name}-${item.expiry}`)} className="border-t border-slate-200 dark:border-slate-800">
-                    <td className="px-3 py-2 font-semibold">
-                      <div className="max-w-[50vw] min-w-0">
+                    <td className="w-1/2 px-3 py-2 font-semibold">
+                      <div className="min-w-0">
                         {invId ? (
-                          <Link href={`/inventory/items/${invId}`} className="block truncate text-sky-700 hover:underline dark:text-sky-300">
+                          <Link href={`/inventory/items/${invId}`} className="block break-words text-sky-700 hover:underline dark:text-sky-300">
                             {item.name ?? "Item"}
                           </Link>
                         ) : (
-                          <div className="truncate">{item.name ?? "Item"}</div>
+                          <div className="break-words">{item.name ?? "Item"}</div>
                         )}
                         {item.category ? <div className="truncate text-xs font-medium text-slate-500 dark:text-slate-400">{item.category}</div> : null}
                       </div>
@@ -122,6 +122,7 @@ export function InventoryLowStock({ todayISO }: { todayISO: string }) {
                     <td className={`px-3 py-2 text-center font-semibold ${storeStock ? "text-rose-700 dark:text-rose-300" : "text-slate-500 dark:text-slate-400"}`}>{storeStock || 0}</td>
                     <td className="px-3 py-2 text-center font-semibold text-emerald-700 dark:text-emerald-300">{qty || 0}</td>
                     <td className="px-3 py-2 text-center font-semibold text-amber-700 dark:text-amber-300">{pending || 0}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">{item.expiry ? fmtDateLabel(item.expiry) : "—"}</td>
                     <td className="px-3 py-2">
                       {validatedBy ? (
                         <div>
@@ -132,7 +133,6 @@ export function InventoryLowStock({ todayISO }: { todayISO: string }) {
                         <span className="text-rose-700 dark:text-rose-300">Not validated</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap">{item.expiry ? fmtDateLabel(item.expiry) : "—"}</td>
                   </tr>
                 );
               })}

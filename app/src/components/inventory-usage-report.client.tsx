@@ -131,16 +131,16 @@ export function InventoryUsageReport({ todayISO }: { todayISO: string }) {
         <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-900">No inventory usage found for this range.</div>
       ) : (
         <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <table className="min-w-[980px] w-full text-sm">
+          <table className="min-w-[980px] w-full table-fixed text-sm">
             <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
               <tr>
-                <th className="px-3 py-2 text-left font-medium">Item</th>
-                {showCompany ? <th className="px-3 py-2 text-left font-medium">Company</th> : null}
+                <th className="w-1/2 px-3 py-2 text-left font-medium">Item</th>
                 <th className="px-3 py-2 text-center font-medium">+</th>
                 <th className="px-3 py-2 text-center font-medium">-</th>
                 <th className="px-3 py-2 text-center font-medium">AVG/day</th>
                 <th className="px-3 py-2 text-right font-medium">Usage cost</th>
                 <th className="px-3 py-2 text-center font-medium">Stock</th>
+                {showCompany ? <th className="px-3 py-2 text-left font-medium">Company</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -157,7 +157,7 @@ export function InventoryUsageReport({ todayISO }: { todayISO: string }) {
                 const companyName = item.company_name ?? item.company ?? `Company ${item.company_id ?? ""}`;
                 return (
                   <tr key={String(item.reference_id ?? item.id ?? item.inventory_name ?? item.name)} className="border-t border-slate-200 dark:border-slate-800">
-                    <td className="px-3 py-2">
+                    <td className="w-1/2 px-3 py-2">
                       <div className="flex items-center gap-2">
                         {item.image ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -167,22 +167,22 @@ export function InventoryUsageReport({ todayISO }: { todayISO: string }) {
                         )}
                         <div className="min-w-0">
                           {invId ? (
-                            <Link href={`/inventory/items/${invId}`} className="block truncate font-semibold text-sky-700 hover:underline dark:text-sky-300">
+                            <Link href={`/inventory/items/${invId}`} className="block break-words font-semibold text-sky-700 hover:underline dark:text-sky-300">
                               {item.inventory_name ?? item.name ?? "Item"}
                             </Link>
                           ) : (
-                            <div className="truncate font-semibold">{item.inventory_name ?? item.name ?? "Item"}</div>
+                            <div className="break-words font-semibold">{item.inventory_name ?? item.name ?? "Item"}</div>
                           )}
                           {item.inventory_name_sub || item.name_sub ? <div className="truncate text-xs text-slate-500 dark:text-slate-400">{item.inventory_name_sub ?? item.name_sub}</div> : null}
                         </div>
                       </div>
                     </td>
-                    {showCompany ? <td className="px-3 py-2">{companyName}</td> : null}
                     <td className="px-3 py-2 text-center font-semibold text-emerald-700 dark:text-emerald-300">{addStock}</td>
                     <td className="px-3 py-2 text-center font-semibold text-rose-700 dark:text-rose-300">{subStock}</td>
                     <td className="px-3 py-2 text-center tabular-nums">{avgPerDay.toFixed(2)}</td>
                     <td className="px-3 py-2 text-right tabular-nums font-semibold">{money(usageCost)}</td>
                     <td className="px-3 py-2 text-center tabular-nums">{stockQty}</td>
+                    {showCompany ? <td className="px-3 py-2">{companyName}</td> : null}
                   </tr>
                 );
               })}
