@@ -2,7 +2,6 @@
 
 import { initializeApp, type FirebaseApp } from "firebase/app";
 import { deleteToken, getMessaging, getToken, isSupported, type Messaging } from "firebase/messaging";
-import { config as appConfig } from "@/lib/config";
 
 export type PushSetupResult =
   | { ok: true; token: string }
@@ -11,7 +10,6 @@ export type PushSetupResult =
 type SaveTokenPayload = {
   action: "save" | "delete";
   token?: string;
-  name: string;
 };
 
 const LS_OPT_IN = "push_opt_in";
@@ -58,7 +56,8 @@ function getFirebaseMessaging(): Messaging {
 async function saveTokenToBackend(payload: SaveTokenPayload): Promise<{ ok: true } | { ok: false; reason: string }> {
   let saveResponse: Response;
   try {
-    saveResponse = await fetch(`${appConfig.apiBaseUrl}/save-token.php`, {
+    // Proxy via Next.js API to avoid CORS and to attach company access from the Auth0 session.
+    saveResponse = await fetch(`/api/push/token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -68,15 +67,15 @@ async function saveTokenToBackend(payload: SaveTokenPayload): Promise<{ ok: true
   }
 
   if (!saveResponse.ok) {
-    return { ok: false, reason: `Token save failed (${saveResponse.status})` };
+    let details = "";
+    try {
+      details = await saveResponse.text();
+    } catch {
+      details = "";
+    }
+    return { ok: false, reason: `Token save failed (${saveResponse.status})${details ? `: ${details}` : ""}` };
   }
-  // Best-effort parse for debugging; backend sometimes returns empty body on upstream errors.
-  try {
-    const txt = await saveResponse.text();
-    if (txt) JSON.parse(txt);
-  } catch {
-    // ignore
-  }
+
   return { ok: true };
 }
 
@@ -121,7 +120,6 @@ export async function enablePushNotifications({
   const saved = await saveTokenToBackend({
     action: "save",
     token,
-    name: userId
   });
   if (!saved.ok) return { ok: false, reason: saved.reason };
 
@@ -146,7 +144,7 @@ export async function disablePushNotifications({ userId }: { userId: string }): 
     }
   })();
 
-  const saved = await saveTokenToBackend({ action: "delete", name: userId, token: existingToken || undefined });
+  const saved = await saveTokenToBackend({ action: "delete", token: existingToken || undefined });
   if (!saved.ok) return saved;
 
   // Best-effort: also remove the browser token from FCM so it doesn't keep receiving silently.
@@ -212,7 +210,7 @@ export async function syncPushNotifications({ userId }: { userId: string }): Pro
   const twelveHours = 12 * 60 * 60 * 1000;
   if (token === prevToken && Date.now() - lastSyncMs < twelveHours) return { ok: true, token };
 
-  const saved = await saveTokenToBackend({ action: "save", token, name: userId });
+  const saved = await saveTokenToBackend({ action: "save", token });
   if (!saved.ok) return saved;
 
   try {
