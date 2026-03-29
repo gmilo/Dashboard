@@ -22,6 +22,7 @@ export function DashboardDateFab({ date, todayISO }: { date: string; todayISO: s
     else params.delete("date");
     const qs = params.toString();
     router.push(qs ? `/?${qs}` : "/");
+    setOpen(false);
   };
 
   return (
