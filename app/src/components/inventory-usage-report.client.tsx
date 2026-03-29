@@ -26,6 +26,53 @@ function money(n: number) {
   return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(n);
 }
 
+function getOrderUnit(item: any): { label: string; size: number } | null {
+  const candidates = [
+    item?.units,
+    item?.inventory_units,
+    item?.stock_meta_data?.units,
+    item?.inventory?.units,
+    item?.inventory?.stock_meta_data?.units
+  ];
+  for (const c of candidates) {
+    if (!Array.isArray(c) || !c.length) continue;
+    const last = c[c.length - 1];
+    const label = typeof last?.label === "string" ? last.label : "";
+    const size = Number(last?.size ?? 0);
+    if (!label || !Number.isFinite(size) || size <= 0) continue;
+    return { label, size };
+  }
+
+  const fallbacks: any[] = [
+    item?.cost_price,
+    item?.inventory_cost_price,
+    item,
+    item?.inventory
+  ];
+
+  for (const f of fallbacks) {
+    const label =
+      typeof (f as any)?.unit_label === "string"
+        ? ((f as any).unit_label as string)
+        : typeof (f as any)?.cost_price_unit_label === "string"
+          ? ((f as any).cost_price_unit_label as string)
+          : "";
+    const sizeRaw =
+      (f as any)?.unit_size ??
+      (f as any)?.cost_price_size ??
+      (f as any)?.cost_price_unit_size ??
+      (f as any)?.unit_quantity ??
+      (f as any)?.cost_price_unit_quantity ??
+      0;
+    const sizeParsed = Number(sizeRaw);
+    const size = Number.isFinite(sizeParsed) && sizeParsed > 0 ? sizeParsed : label ? 1 : 0;
+    if (!label || !Number.isFinite(size) || size <= 0) continue;
+    return { label, size };
+  }
+
+  return null;
+}
+
 export function InventoryUsageReport({ todayISO }: { todayISO: string }) {
   const router = useRouter();
   const [preset, setPreset] = useState<Preset>("today");
@@ -157,6 +204,10 @@ export function InventoryUsageReport({ todayISO }: { todayISO: string }) {
                 const stockQty = toNumber(item.inventory_quantity ?? item.quantity);
                 const companyName = item.company_name ?? item.company ?? `Company ${item.company_id ?? ""}`;
                 const href = invId ? `/inventory/items/${invId}` : "";
+                const orderUnit = getOrderUnit(item);
+                const used = Math.max(0, Math.abs(subStock));
+                const usagePct = orderUnit && orderUnit.size > 0 ? Math.max(0, Math.min(100, (used / orderUnit.size) * 100)) : null;
+                const orderUnitsNeeded = orderUnit && orderUnit.size > 0 ? Math.max(0, Math.ceil(used / orderUnit.size)) : null;
                 return (
                   <tr
                     key={String(item.reference_id ?? item.id ?? item.inventory_name ?? item.name)}
@@ -172,8 +223,25 @@ export function InventoryUsageReport({ todayISO }: { todayISO: string }) {
                           <div className="h-8 w-8 rounded-lg bg-slate-200/60 dark:bg-slate-800/60" />
                         )}
                         <div className="min-w-0">
-                          <div className="max-w-[220px] truncate font-semibold text-slate-900 dark:text-white">{item.inventory_name ?? item.name ?? "Item"}</div>
-                          {item.inventory_name_sub || item.name_sub ? <div className="truncate text-xs text-slate-500 dark:text-slate-400">{item.inventory_name_sub ?? item.name_sub}</div> : null}
+                          <div className="flex max-w-[220px] items-baseline gap-2">
+                            <div className="min-w-0 truncate font-semibold text-slate-900 dark:text-white">{item.inventory_name ?? item.name ?? "Item"}</div>
+                            {orderUnit ? (
+                              <div className="shrink-0 text-xs font-medium text-slate-500 dark:text-slate-400">
+                                {orderUnit.label}({orderUnit.size})
+                              </div>
+                            ) : null}
+                          </div>
+                          {orderUnit && used > 0 ? (
+                            <div className="mt-1" title={`Used: ${used} • Order: ${orderUnitsNeeded ?? 0} ${orderUnit.label}`}>
+                              <div className="h-1.5 w-full max-w-[220px] overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+                                <div className="h-full rounded-full bg-rose-600 dark:bg-rose-500" style={{ width: `${usagePct ?? 0}%` }} />
+                              </div>
+                              <div className="mt-0.5 truncate text-[10px] text-slate-500 dark:text-slate-400">
+                                Used {used}
+                                {orderUnitsNeeded && orderUnitsNeeded > 1 ? ` • Order ${orderUnitsNeeded} ${orderUnit.label}` : orderUnitsNeeded === 1 ? ` • Order 1 ${orderUnit.label}` : ""}
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
                       </div>
                     </td>

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, Clock3, UserRound, XCircle } from "lucide-react";
 
 type ValidationRow = {
   id: number | null;
@@ -146,8 +146,6 @@ export function InventoryValidation({ todayISO }: { todayISO: string }) {
                 <th>Status</th>
                 <th className="text-center">Stock</th>
                 <th className="text-center">Days</th>
-                <th className="hidden whitespace-nowrap px-3 py-2 text-left font-medium sm:table-cell">Last</th>
-                <th className="hidden px-3 py-2 text-left font-medium sm:table-cell">By</th>
               </tr>
             </thead>
             <tbody>
@@ -169,12 +167,17 @@ export function InventoryValidation({ todayISO }: { todayISO: string }) {
                         )}
                         <div className="min-w-0">
                           <div className="max-w-[220px] truncate font-semibold text-slate-900 dark:text-white">{r.name}</div>
-                          {r.name_sub ? <div className="truncate text-xs text-slate-500 dark:text-slate-400">{r.name_sub}</div> : null}
-                          <div className="mt-0.5 space-y-0.5 text-[10px] text-slate-600 dark:text-slate-300 sm:hidden">
-                            <div className="truncate">
-                              Last: {fmtWhen(r.last_validated_at)} • {fmtAgo(r.last_validated_at)}
+                          <div className="mt-0.5 space-y-0.5 text-[10px] text-slate-600 dark:text-slate-300">
+                            <div className="flex items-center gap-1 truncate">
+                              <Clock3 className="h-3 w-3 shrink-0 text-slate-500 dark:text-slate-400" />
+                              <span className="truncate">
+                                {fmtWhen(r.last_validated_at)} • {fmtAgo(r.last_validated_at)}
+                              </span>
                             </div>
-                            <div className="truncate">By: {r.validated_by ?? "N/A"}</div>
+                            <div className="flex items-center gap-1 truncate">
+                              <UserRound className="h-3 w-3 shrink-0 text-slate-500 dark:text-slate-400" />
+                              <span className="truncate">{r.validated_by ?? "N/A"}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -192,11 +195,6 @@ export function InventoryValidation({ todayISO }: { todayISO: string }) {
                     </td>
                     <td className="text-center tabular-nums">{r.stock_qty}</td>
                     <td className="text-center tabular-nums">{r.validation_days}</td>
-                    <td className="hidden sm:table-cell">
-                      <div>{fmtWhen(r.last_validated_at)}</div>
-                      <div className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">{fmtAgo(r.last_validated_at)}</div>
-                    </td>
-                    <td className="hidden sm:table-cell">{r.validated_by ?? "N/A"}</td>
                   </tr>
                 );
               })}

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { useRouter } from "next/navigation";
+import { CalendarDays, Clock3, UserRound } from "lucide-react";
 
 type LowStockItem = any;
 
@@ -103,8 +104,6 @@ export function InventoryLowStock({ todayISO }: { todayISO: string }) {
                 <th className="text-center">Store</th>
                 <th className="text-center">Total</th>
                 <th className="text-center">Pending</th>
-                <th className="hidden whitespace-nowrap px-3 py-2 text-left font-medium sm:table-cell">Expiry</th>
-                <th className="hidden whitespace-nowrap px-3 py-2 text-left font-medium sm:table-cell">Validated</th>
               </tr>
             </thead>
             <tbody>
@@ -118,6 +117,7 @@ export function InventoryLowStock({ todayISO }: { todayISO: string }) {
                 const invId = item.reference_id ?? item.inventory_id ?? item.id ?? null;
                 const href = invId ? `/inventory/items/${invId}` : "";
                 const orderPct = orderUnit ? Math.max(0, Math.min(100, (Math.max(0, storeStock) / orderUnit.size) * 100)) : null;
+                const validatedAtLabel = validatedAt ? String(validatedAt).slice(0, 16).replace("T", " ") : "";
                 return (
                   <tr
                     key={String(item.id ?? `${item.name}-${item.expiry}`)}
@@ -141,33 +141,31 @@ export function InventoryLowStock({ todayISO }: { todayISO: string }) {
                             </div>
                           </div>
                         ) : null}
-                        <div className="mt-0.5 space-y-0.5 text-[10px] text-slate-600 dark:text-slate-300 sm:hidden">
-                          {item.expiry ? <div className="truncate">Expiry: {fmtDateLabel(item.expiry)}</div> : null}
-                          {validatedBy ? (
-                            <div className="truncate">
-                              Validated: {String(validatedBy)}
-                              {validatedAt ? ` • ${String(validatedAt).slice(0, 16).replace("T", " ")}` : ""}
+                        <div className="mt-1 space-y-0.5 text-[10px] text-slate-600 dark:text-slate-300">
+                          {item.expiry ? (
+                            <div className="flex items-center gap-1 truncate">
+                              <CalendarDays className="h-3 w-3 shrink-0 text-slate-500 dark:text-slate-400" />
+                              <span className="truncate">{fmtDateLabel(item.expiry)}</span>
                             </div>
-                          ) : (
-                            <div className="truncate text-rose-700 dark:text-rose-300">Not validated</div>
-                          )}
+                          ) : null}
+
+                          <div className="flex items-center gap-1 truncate">
+                            <UserRound className="h-3 w-3 shrink-0 text-slate-500 dark:text-slate-400" />
+                            <span className={`truncate ${validatedBy ? "" : "text-rose-700 dark:text-rose-300"}`}>{validatedBy ? String(validatedBy) : "Not validated"}</span>
+                            {validatedAtLabel ? (
+                              <span className="inline-flex items-center gap-1 truncate text-slate-500 dark:text-slate-400">
+                                <span aria-hidden="true">•</span>
+                                <Clock3 className="h-3 w-3 shrink-0" />
+                                <span className="truncate">{validatedAtLabel}</span>
+                              </span>
+                            ) : null}
+                          </div>
                         </div>
                       </div>
                     </td>
                     <td className={`text-center font-semibold ${storeStock ? "text-rose-700 dark:text-rose-300" : "text-slate-500 dark:text-slate-400"}`}>{storeStock || 0}</td>
                     <td className="text-center font-semibold text-emerald-700 dark:text-emerald-300">{qty || 0}</td>
                     <td className="text-center font-semibold text-amber-700 dark:text-amber-300">{pending || 0}</td>
-                    <td className="hidden sm:table-cell">{item.expiry ? fmtDateLabel(item.expiry) : "—"}</td>
-                    <td className="hidden sm:table-cell">
-                      {validatedBy ? (
-                        <div>
-                          <div className="font-semibold">{String(validatedBy)}</div>
-                          {validatedAt ? <div className="text-xs text-slate-500 dark:text-slate-400">{String(validatedAt).slice(0, 16).replace("T", " ")}</div> : null}
-                        </div>
-                      ) : (
-                        <span className="text-rose-700 dark:text-rose-300">Not validated</span>
-                      )}
-                    </td>
                   </tr>
                 );
               })}
