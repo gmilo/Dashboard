@@ -70,8 +70,11 @@ export async function GET(request: Request) {
       }
 
       const lastValidated = parseLastValidatedAt(item);
-      const diffDays = lastValidated ? Math.floor((now.getTime() - lastValidated.getTime()) / (1000 * 60 * 60 * 24)) : null;
-      const required = !lastValidated || (diffDays !== null && diffDays > validationDays);
+      const required =
+        !lastValidated ||
+        (Number.isFinite(validationDays) &&
+          validationDays > 0 &&
+          now.getTime() - lastValidated.getTime() >= validationDays * 24 * 60 * 60 * 1000);
 
       const validatedBy =
         item.stock_batch?.find((b: any) => b?.id === item.default_active_stock_batch_id)?.last_validated_by_employee?.[0]?.display_name ??
@@ -92,7 +95,16 @@ export async function GET(request: Request) {
     })
     .filter(Boolean);
 
-  rows.sort((a: any, b: any) => Number(b.required) - Number(a.required) || (b.stock_qty ?? 0) - (a.stock_qty ?? 0));
+  rows.sort((a: any, b: any) => {
+    const byStatus = Number(b.required) - Number(a.required);
+    if (byStatus) return byStatus;
+
+    const at = a.last_validated_at ? new Date(a.last_validated_at).getTime() : -Infinity;
+    const bt = b.last_validated_at ? new Date(b.last_validated_at).getTime() : -Infinity;
+    if (bt !== at) return bt - at; // most recent first
+
+    return String(a.name ?? "").localeCompare(String(b.name ?? ""));
+  });
 
   return NextResponse.json(
     {
@@ -106,4 +118,3 @@ export async function GET(request: Request) {
     { headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" } }
   );
 }
-

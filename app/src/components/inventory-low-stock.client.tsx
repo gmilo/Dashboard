@@ -15,6 +15,15 @@ type LowStockResponse = {
   error?: string;
 };
 
+function getOrderUnit(units: any): { label: string; size: number } | null {
+  if (!Array.isArray(units) || !units.length) return null;
+  const last = units[units.length - 1];
+  const label = typeof last?.label === "string" ? last.label : "";
+  const size = Number(last?.size ?? 0);
+  if (!label || !Number.isFinite(size) || size <= 0) return null;
+  return { label, size };
+}
+
 function fmtDateLabel(dateISO?: string) {
   if (!dateISO) return "—";
   const dt = new Date(dateISO);
@@ -105,8 +114,10 @@ export function InventoryLowStock({ todayISO }: { todayISO: string }) {
                 const pending = Number(item.pending ?? 0);
                 const validatedBy = item.validated_by;
                 const validatedAt = item.validated_at;
+                const orderUnit = getOrderUnit(item.units);
                 const invId = item.reference_id ?? item.inventory_id ?? item.id ?? null;
                 const href = invId ? `/inventory/items/${invId}` : "";
+                const orderPct = orderUnit ? Math.max(0, Math.min(100, (Math.max(0, storeStock) / orderUnit.size) * 100)) : null;
                 return (
                   <tr
                     key={String(item.id ?? `${item.name}-${item.expiry}`)}
@@ -115,8 +126,21 @@ export function InventoryLowStock({ todayISO }: { todayISO: string }) {
                   >
                     <td>
                       <div className="min-w-0">
-                        <div className="max-w-[220px] truncate font-semibold text-slate-900 dark:text-white">{item.name ?? "Item"}</div>
-                        {item.category ? <div className="truncate text-xs font-medium text-slate-500 dark:text-slate-400">{item.category}</div> : null}
+                        <div className="flex max-w-[220px] items-baseline gap-2">
+                          <div className="min-w-0 truncate font-semibold text-slate-900 dark:text-white">{item.name ?? "Item"}</div>
+                          {orderUnit ? (
+                            <div className="shrink-0 text-xs font-medium text-slate-500 dark:text-slate-400">
+                              {orderUnit.label}({orderUnit.size})
+                            </div>
+                          ) : null}
+                        </div>
+                        {orderUnit ? (
+                          <div className="mt-1" title={`Stock: ${storeStock || 0}/${orderUnit.size} ${orderUnit.label}`}>
+                            <div className="h-1.5 w-full max-w-[220px] overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+                              <div className="h-full rounded-full bg-rose-600 dark:bg-rose-500" style={{ width: `${orderPct ?? 0}%` }} />
+                            </div>
+                          </div>
+                        ) : null}
                         <div className="mt-0.5 space-y-0.5 text-[10px] text-slate-600 dark:text-slate-300 sm:hidden">
                           {item.expiry ? <div className="truncate">Expiry: {fmtDateLabel(item.expiry)}</div> : null}
                           {validatedBy ? (

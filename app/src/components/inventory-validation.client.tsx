@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { useRouter } from "next/navigation";
+import { CheckCircle2, XCircle } from "lucide-react";
 
 type ValidationRow = {
   id: number | null;
@@ -33,6 +34,28 @@ function fmtWhen(iso: string | null) {
   return new Intl.DateTimeFormat("en-AU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(dt);
 }
 
+function fmtAgo(iso: string | null) {
+  if (!iso) return "N/A";
+  const dt = new Date(iso);
+  if (!Number.isFinite(dt.getTime())) return "N/A";
+
+  const diffMs = Date.now() - dt.getTime();
+  const isFuture = diffMs < 0;
+  const absMs = Math.abs(diffMs);
+
+  const minutes = Math.floor(absMs / 60_000);
+  const hours = Math.floor(absMs / 3_600_000);
+  const days = Math.floor(absMs / 86_400_000);
+
+  const unit = (n: number, s: string) => `${n} ${s}${n === 1 ? "" : "s"}`;
+
+  const phrase =
+    absMs < 60_000 ? "just now" : days >= 1 ? unit(days, "day") : hours >= 1 ? unit(hours, "hour") : unit(Math.max(1, minutes), "minute");
+
+  if (phrase === "just now") return phrase;
+  return isFuture ? `in ${phrase}` : `${phrase} ago`;
+}
+
 export function InventoryValidation({ todayISO }: { todayISO: string }) {
   const router = useRouter();
   const [companyId, setCompanyId] = useState<string>("");
@@ -56,7 +79,17 @@ export function InventoryValidation({ todayISO }: { todayISO: string }) {
 
   const assignedCompanyCount = data?.assignedCompanyCount ?? 0;
   const companies = useMemo(() => [...(data?.companies ?? [])].sort((a, b) => a.name.localeCompare(b.name)), [data?.companies]);
-  const rows = data?.data ?? [];
+  const sortedRows = useMemo(() => {
+    const rows = data?.data ?? [];
+    return [...rows].sort((a, b) => {
+      const req = Number(b.required) - Number(a.required);
+      if (req) return req;
+      const at = a.last_validated_at ? new Date(a.last_validated_at).getTime() : -Infinity;
+      const bt = b.last_validated_at ? new Date(b.last_validated_at).getTime() : -Infinity;
+      if (bt !== at) return bt - at;
+      return a.name.localeCompare(b.name);
+    });
+  }, [data?.data]);
 
   if (isLoading) {
     return (
@@ -100,7 +133,7 @@ export function InventoryValidation({ todayISO }: { todayISO: string }) {
         <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">Shows items that require validation.</div>
       </section>
 
-      {!rows.length ? (
+      {!sortedRows.length ? (
         <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-900">
           No inventory items require validation at this time.
         </div>
@@ -118,7 +151,7 @@ export function InventoryValidation({ todayISO }: { todayISO: string }) {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => {
+              {sortedRows.map((r) => {
                 const href = r.id ? `/inventory/items/${r.id}` : "";
                 return (
                   <tr
@@ -138,26 +171,31 @@ export function InventoryValidation({ todayISO }: { todayISO: string }) {
                           <div className="max-w-[220px] truncate font-semibold text-slate-900 dark:text-white">{r.name}</div>
                           {r.name_sub ? <div className="truncate text-xs text-slate-500 dark:text-slate-400">{r.name_sub}</div> : null}
                           <div className="mt-0.5 space-y-0.5 text-[10px] text-slate-600 dark:text-slate-300 sm:hidden">
-                            <div className="truncate">Last: {fmtWhen(r.last_validated_at)}</div>
+                            <div className="truncate">
+                              Last: {fmtWhen(r.last_validated_at)} • {fmtAgo(r.last_validated_at)}
+                            </div>
                             <div className="truncate">By: {r.validated_by ?? "N/A"}</div>
                           </div>
                         </div>
                       </div>
                     </td>
                     <td>
-                    {r.required ? (
-                      <span className="inline-flex rounded-full bg-rose-600/10 px-2 py-1 text-[11px] font-semibold text-rose-800 dark:bg-rose-500/10 dark:text-rose-200">
-                        Required
-                      </span>
-                    ) : (
-                      <span className="inline-flex rounded-full bg-emerald-600/10 px-2 py-1 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
-                        Validated
-                      </span>
-                    )}
-                  </td>
+                      {r.required ? (
+                        <span className="inline-flex items-center" title="Required" aria-label="Required">
+                          <XCircle className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center" title="Validated" aria-label="Validated">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        </span>
+                      )}
+                    </td>
                     <td className="text-center tabular-nums">{r.stock_qty}</td>
                     <td className="text-center tabular-nums">{r.validation_days}</td>
-                    <td className="hidden sm:table-cell">{fmtWhen(r.last_validated_at)}</td>
+                    <td className="hidden sm:table-cell">
+                      <div>{fmtWhen(r.last_validated_at)}</div>
+                      <div className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">{fmtAgo(r.last_validated_at)}</div>
+                    </td>
                     <td className="hidden sm:table-cell">{r.validated_by ?? "N/A"}</td>
                   </tr>
                 );
