@@ -57,6 +57,12 @@ function inc(map: Record<string, number>, key: string | null | undefined) {
   map[key] = (map[key] ?? 0) + 1;
 }
 
+function norm(value: unknown): string {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
+}
+
 function collectMeta(transactions: Array<{ sale: TransactionSale; items: TransactionItem[] }>) {
   const payment_types: Record<string, number> = {};
   const types: Record<string, number> = {};
@@ -124,6 +130,8 @@ export async function GET(request: Request) {
   const discount = url.searchParams.get("discount")?.trim() ?? "";
   const statusFilter = (url.searchParams.get("status") ?? "").trim().toLowerCase();
   const paymentTypeFilterRaw = (url.searchParams.get("payment_type") ?? "").trim();
+  const tagFilterRaw = (url.searchParams.get("tag") ?? "").trim();
+  const categoryFilterRaw = (url.searchParams.get("category") ?? "").trim();
   const memberIdRaw = (url.searchParams.get("member_id") ?? "").trim();
   const productIdRaw = (url.searchParams.get("product_id") ?? "").trim();
   const companyIdRaw = (url.searchParams.get("company_id") ?? "").trim();
@@ -190,14 +198,39 @@ export async function GET(request: Request) {
     filtered = filtered.filter((t) => (t.sale.status ?? "").toLowerCase() !== "completed");
   }
 
-  // Meta should reflect current scope (date/company/discount/status), but not be constrained by payment_type so the UI can still show options.
-  const meta = collectMeta(filtered);
-
   const paymentTypeFilter = paymentTypeFilterRaw.toLowerCase();
   if (paymentTypeFilter) {
     filtered = filtered.filter((t) => String(t.sale.payment_type ?? "").toLowerCase() === paymentTypeFilter);
   }
 
+  const tagFilter = norm(tagFilterRaw);
+  if (tagFilter) {
+    filtered = filtered.filter((t) => {
+      const stack: TransactionItem[] = [...(t.items ?? [])];
+      while (stack.length) {
+        const it = stack.pop()!;
+        if (norm(it.tag) === tagFilter) return true;
+        if (Array.isArray(it.children)) stack.push(...it.children);
+      }
+      return false;
+    });
+  }
+
+  const categoryFilter = norm(categoryFilterRaw);
+  if (categoryFilter) {
+    filtered = filtered.filter((t) => {
+      const stack: TransactionItem[] = [...(t.items ?? [])];
+      while (stack.length) {
+        const it = stack.pop()!;
+        if (norm(it.category_name) === categoryFilter) return true;
+        if (Array.isArray(it.children)) stack.push(...it.children);
+      }
+      return false;
+    });
+  }
+
+  // Meta should reflect current result scope so filter options shrink as filters are applied.
+  const meta = collectMeta(filtered);
   const summary = buildSummary(filtered);
 
   return NextResponse.json(
@@ -213,6 +246,8 @@ export async function GET(request: Request) {
         discount: discount === "1" || discount.toLowerCase() === "true" ? 1 : null,
         status: statusFilter || null,
         payment_type: paymentTypeFilterRaw || null,
+        tag: tagFilterRaw || null,
+        category: categoryFilterRaw || null,
         member_id: memberIdRaw || null,
         product_id: productIdRaw || null,
         limit: Number(limit)

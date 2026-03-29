@@ -55,7 +55,7 @@ type TransactionsResponse = {
   success: boolean;
   assignedCompanyCount?: number;
   companies?: Array<{ id: number; name: string }>;
-  meta?: { payment_types?: Record<string, number>; status?: Record<string, number> };
+  meta?: { payment_types?: Record<string, number>; status?: Record<string, number>; tags?: Record<string, number>; categories?: Record<string, number> };
   data?: Transaction[];
   error?: string;
 };
@@ -66,6 +66,16 @@ type StatusFilter = "" | "completed" | "not_completed";
 function toNumber(value: unknown): number {
   const n = typeof value === "number" ? value : Number(String(value ?? ""));
   return Number.isFinite(n) ? n : 0;
+}
+
+function buildCountOptions(map: Record<string, number> | undefined, selected: string) {
+  const m = map ?? {};
+  const rows = Object.entries(m)
+    .filter(([k]) => k && k.trim())
+    .map(([k, v]) => ({ key: k, count: v }))
+    .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
+  if (selected && !rows.some((r) => r.key === selected)) rows.unshift({ key: selected, count: 0 });
+  return rows;
 }
 
 function money(n: number) {
@@ -118,9 +128,44 @@ export function TransactionsReport({ todayISO, memberId }: { todayISO: string; m
   const [discountOnly, setDiscountOnly] = useState<boolean>(false);
   const [status, setStatus] = useState<StatusFilter>("");
   const [paymentType, setPaymentType] = useState<string>("");
+  const [tag, setTag] = useState<string>("");
+  const [category, setCategory] = useState<string>("");
   const [visibleCount, setVisibleCount] = useState<number>(50);
   const [selected, setSelected] = useState<Transaction | null>(null);
   const fixedMemberId = memberId !== undefined && memberId !== null && String(memberId).trim() ? String(memberId).trim() : "";
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+    const params = new URLSearchParams(window.location.search);
+    const dateFrom = (params.get("date_from") ?? "").trim();
+    const dateTo = (params.get("date_to") ?? "").trim();
+    const cid = (params.get("company_id") ?? "").trim();
+    const qStatus = (params.get("status") ?? "").trim() as StatusFilter;
+    const qPayment = (params.get("payment_type") ?? "").trim();
+    const qTag = (params.get("tag") ?? "").trim();
+    const qCategory = (params.get("category") ?? "").trim();
+    const qDiscount = (params.get("discount") ?? "").trim();
+
+    if (cid) setCompanyId(cid);
+    if (qStatus) setStatus(qStatus);
+    if (qPayment) setPaymentType(qPayment);
+    if (qTag) setTag(qTag);
+    if (qCategory) setCategory(qCategory);
+    if (qDiscount === "1" || qDiscount.toLowerCase() === "true") setDiscountOnly(true);
+
+    if (dateFrom && dateTo) {
+      const y = addDaysISO(todayISO, -1);
+      if (dateFrom === todayISO && dateTo === todayISO) setPreset("today");
+      else if (dateFrom === y && dateTo === y) setPreset("yesterday");
+      else {
+        setPreset("custom");
+        setCustomFrom(dateFrom);
+        setCustomTo(dateTo);
+      }
+    }
+  }, [todayISO]);
 
   const range = useMemo(() => {
     if (preset === "today") return { from: todayISO, to: todayISO };
@@ -133,7 +178,7 @@ export function TransactionsReport({ todayISO, memberId }: { todayISO: string; m
     return { from: customFrom || todayISO, to: customTo || todayISO };
   }, [preset, todayISO, customFrom, customTo]);
 
-  const key = ["transactions", range.from, range.to, companyId, discountOnly ? "1" : "0", status, paymentType, fixedMemberId] as const;
+  const key = ["transactions", range.from, range.to, companyId, discountOnly ? "1" : "0", status, paymentType, tag, category, fixedMemberId] as const;
 
   const { data, error, isLoading } = useSWR<TransactionsResponse>(key, async () => {
     const url = new URL("/api/transactions", window.location.origin);
@@ -144,6 +189,8 @@ export function TransactionsReport({ todayISO, memberId }: { todayISO: string; m
     if (discountOnly) url.searchParams.set("discount", "1");
     if (status) url.searchParams.set("status", status);
     if (paymentType) url.searchParams.set("payment_type", paymentType);
+    if (tag) url.searchParams.set("tag", tag);
+    if (category) url.searchParams.set("category", category);
     if (fixedMemberId) url.searchParams.set("member_id", fixedMemberId);
     const res = await fetch(url.toString());
     const json = (await res.json()) as TransactionsResponse;
@@ -154,13 +201,14 @@ export function TransactionsReport({ todayISO, memberId }: { todayISO: string; m
   const assignedCompanyCount = data?.assignedCompanyCount ?? 0;
   const companies = useMemo(() => [...(data?.companies ?? [])].sort((a, b) => a.name.localeCompare(b.name)), [data?.companies]);
   const paymentTypes = useMemo(() => {
-    const map = data?.meta?.payment_types ?? {};
-    const rows = Object.entries(map)
-      .filter(([k]) => k && k.trim())
-      .map(([k, v]) => ({ key: k, count: v }))
-      .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
-    return rows;
-  }, [data?.meta?.payment_types]);
+    return buildCountOptions(data?.meta?.payment_types ?? {}, paymentType);
+  }, [data?.meta?.payment_types, paymentType]);
+  const tags = useMemo(() => {
+    return buildCountOptions(data?.meta?.tags ?? {}, tag);
+  }, [data?.meta?.tags, tag]);
+  const categories = useMemo(() => {
+    return buildCountOptions(data?.meta?.categories ?? {}, category);
+  }, [data?.meta?.categories, category]);
   const sorted = useMemo(() => {
     const rows = data?.data ?? [];
     return [...rows].sort((a, b) => (b.sale.id ?? 0) - (a.sale.id ?? 0));
@@ -189,7 +237,157 @@ export function TransactionsReport({ todayISO, memberId }: { todayISO: string; m
   return (
     <div className="space-y-4">
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="text-sm font-semibold">Filters</div>
+        {(() => {
+          const y = addDaysISO(todayISO, -1);
+          const dateIsDefault = preset === "today" && range.from === todayISO && range.to === todayISO;
+          const hasAny =
+            !dateIsDefault ||
+            !!companyId ||
+            !!paymentType ||
+            !!status ||
+            !!tag ||
+            !!category ||
+            discountOnly;
+
+          const clearAll = () => {
+            setPreset("today");
+            setCustomFrom(todayISO);
+            setCustomTo(todayISO);
+            setCompanyId("");
+            setPaymentType("");
+            setStatus("");
+            setTag("");
+            setCategory("");
+            setDiscountOnly(false);
+            setVisibleCount(50);
+          };
+
+          const chips: Array<{ key: string; label: string; onClear: (() => void) | null }> = [];
+
+          if (!dateIsDefault) {
+            const label =
+              preset === "yesterday" && range.from === y && range.to === y
+                ? "Yesterday"
+                : preset === "week"
+                  ? "This week"
+                  : preset === "month"
+                    ? "This month"
+                    : `${range.from} → ${range.to}`;
+            chips.push({
+              key: "date",
+              label,
+              onClear: () => {
+                setPreset("today");
+                setCustomFrom(todayISO);
+                setCustomTo(todayISO);
+                setVisibleCount(50);
+              }
+            });
+          }
+          if (companyId) {
+            const companyName = companies.find((c) => String(c.id) === companyId)?.name ?? companyId;
+            chips.push({
+              key: "company",
+              label: `Company: ${companyName}`,
+              onClear: () => {
+                setCompanyId("");
+                setVisibleCount(50);
+              }
+            });
+          }
+          if (paymentType) {
+            chips.push({
+              key: "pay",
+              label: `Pay: ${paymentType}`,
+              onClear: () => {
+                setPaymentType("");
+                setVisibleCount(50);
+              }
+            });
+          }
+          if (status) {
+            chips.push({
+              key: "status",
+              label: `Status: ${status === "completed" ? "Completed" : "Not completed"}`,
+              onClear: () => {
+                setStatus("");
+                setVisibleCount(50);
+              }
+            });
+          }
+          if (tag) {
+            chips.push({
+              key: "tag",
+              label: `Tag: ${tag}`,
+              onClear: () => {
+                setTag("");
+                setVisibleCount(50);
+              }
+            });
+          }
+          if (category) {
+            chips.push({
+              key: "cat",
+              label: `Category: ${category}`,
+              onClear: () => {
+                setCategory("");
+                setVisibleCount(50);
+              }
+            });
+          }
+          if (discountOnly) {
+            chips.push({
+              key: "disc",
+              label: "Discount only",
+              onClear: () => {
+                setDiscountOnly(false);
+                setVisibleCount(50);
+              }
+            });
+          }
+
+          return (
+            <>
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-semibold">
+                  Filters{hasAny ? <span className="ml-2 rounded-full bg-slate-600/10 px-2 py-0.5 text-[11px] font-semibold text-slate-700 dark:bg-slate-500/10 dark:text-slate-200">Active</span> : null}
+                </div>
+                {hasAny ? (
+                  <button
+                    type="button"
+                    onClick={clearAll}
+                    className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-950/40"
+                  >
+                    Clear all
+                  </button>
+                ) : null}
+              </div>
+
+              {chips.length ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {chips.map((c) => (
+                    <span
+                      key={c.key}
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-200"
+                    >
+                      <span className="max-w-[220px] truncate">{c.label}</span>
+                      {c.onClear ? (
+                        <button
+                          type="button"
+                          className="rounded-full p-0.5 text-slate-500 hover:bg-white/70 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-900/60 dark:hover:text-slate-200"
+                          onClick={c.onClear}
+                          aria-label={`Clear ${c.label}`}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      ) : null}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </>
+          );
+        })()}
         <div className="mt-3 grid grid-cols-1 gap-3">
           <div className="grid grid-cols-2 gap-2">
             <select
@@ -250,6 +448,39 @@ export function TransactionsReport({ todayISO, memberId }: { todayISO: string; m
               <option value="">All statuses</option>
               <option value="completed">Completed</option>
               <option value="not_completed">Not completed</option>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <select
+              className="w-full rounded-lg border border-slate-200 bg-transparent px-3 py-2 text-sm dark:border-slate-800"
+              value={tag}
+              onChange={(e) => {
+                setTag(e.target.value);
+                setVisibleCount(50);
+              }}
+            >
+              <option value="">All tags</option>
+              {tags.map((t) => (
+                <option key={t.key} value={t.key}>
+                  {t.key} ({t.count})
+                </option>
+              ))}
+            </select>
+            <select
+              className="w-full rounded-lg border border-slate-200 bg-transparent px-3 py-2 text-sm dark:border-slate-800"
+              value={category}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setVisibleCount(50);
+              }}
+            >
+              <option value="">All categories</option>
+              {categories.map((c) => (
+                <option key={c.key} value={c.key}>
+                  {c.key} ({c.count})
+                </option>
+              ))}
             </select>
           </div>
 

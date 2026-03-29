@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { HourlySalesChart, type HourlyPoint } from "@/components/hourly-sales-chart";
 import { StoreShiftsStrip, type ShiftPerson } from "@/components/store-shifts-strip";
 import { formatAUD, formatNumber } from "@/lib/format";
@@ -195,6 +196,7 @@ export function StoreHourlyCard({
         <SummaryModal
           open={open}
           onClose={() => setOpen(null)}
+          companyId={store.id}
           storeName={store.name}
           date={date}
           perDay={perDay}
@@ -209,6 +211,7 @@ export function StoreHourlyCard({
 function SummaryModal({
   open,
   onClose,
+  companyId,
   storeName,
   date,
   perDay,
@@ -217,6 +220,7 @@ function SummaryModal({
 }: {
   open: "products" | "sales";
   onClose: () => void;
+  companyId: number;
   storeName: string;
   date: string;
   perDay?: { today: SalesPerDayRow; yesterday?: SalesPerDayRow | null };
@@ -280,6 +284,15 @@ function SummaryModal({
   const today = perDay?.today;
   const y = perDay?.yesterday ?? null;
 
+  const txHrefForCategory = (category: string) => {
+    const sp = new URLSearchParams();
+    sp.set("company_id", String(companyId));
+    sp.set("date_from", date);
+    sp.set("date_to", date);
+    sp.set("category", category);
+    return `/transactions?${sp.toString()}`;
+  };
+
   const row = (label: string, todayVal: React.ReactNode, yVal: React.ReactNode, deltaVal?: React.ReactNode) => (
     <div className="flex items-baseline justify-between gap-2 border-t border-slate-200 py-2 text-[11px] first:border-t-0 dark:border-slate-800 sm:gap-3 sm:text-sm">
       <div className="min-w-0 truncate text-slate-600 dark:text-slate-300">{label}</div>
@@ -341,14 +354,24 @@ function SummaryModal({
                 { label: "Merchandise", key: "Merchandise" }
               ].map((b) => {
                 const v = cat(b.key);
+                const clickable = Number(v.qty) > 0;
                 return (
-                  <div key={b.key} className="rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900">
+                  <Link
+                    key={b.key}
+                    href={txHrefForCategory(b.key)}
+                    aria-disabled={!clickable}
+                    tabIndex={clickable ? 0 : -1}
+                    className={[
+                      "rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900",
+                      clickable ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-950/40" : "pointer-events-none opacity-60"
+                    ].join(" ")}
+                  >
                     <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">{b.label}</div>
                     <div className="mt-0.5 flex items-baseline justify-between gap-2">
                       <div className="text-sm font-semibold tabular-nums">{formatNumber(v.qty)}</div>
                       <div className="text-[10px] tabular-nums text-slate-500 dark:text-slate-400">{formatAUD(v.amount)}</div>
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
