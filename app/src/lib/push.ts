@@ -16,6 +16,19 @@ const LS_OPT_IN = "push_opt_in";
 const LS_TOKEN = "push_fcm_token";
 const LS_LAST_SYNC = "push_fcm_last_sync";
 
+export function getLocalPushState(): { optedIn: boolean; token: string; lastSyncMs: number } {
+  if (typeof window === "undefined") return { optedIn: false, token: "", lastSyncMs: 0 };
+  try {
+    const optedIn = localStorage.getItem(LS_OPT_IN) === "1";
+    const token = localStorage.getItem(LS_TOKEN) ?? "";
+    const lastSyncMsRaw = Number(localStorage.getItem(LS_LAST_SYNC) ?? "");
+    const lastSyncMs = Number.isFinite(lastSyncMsRaw) ? lastSyncMsRaw : 0;
+    return { optedIn, token, lastSyncMs };
+  } catch {
+    return { optedIn: false, token: "", lastSyncMs: 0 };
+  }
+}
+
 function getFirebaseConfigFromEnv() {
   const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
   const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
@@ -136,13 +149,7 @@ export async function enablePushNotifications({
 
 export async function disablePushNotifications({ userId }: { userId: string }): Promise<{ ok: true } | { ok: false; reason: string }> {
   if (!userId.trim()) return { ok: false, reason: "Missing user id" };
-  const existingToken = (() => {
-    try {
-      return localStorage.getItem(LS_TOKEN) ?? "";
-    } catch {
-      return "";
-    }
-  })();
+  const existingToken = getLocalPushState().token;
 
   const saved = await saveTokenToBackend({ action: "delete", token: existingToken || undefined });
   if (!saved.ok) return saved;
