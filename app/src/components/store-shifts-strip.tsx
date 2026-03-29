@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, Circle, Coffee, X } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronUp, Circle, Coffee, X } from "lucide-react";
 import { formatAUD } from "@/lib/format";
 import useSWR from "swr";
 
@@ -44,6 +44,7 @@ export function StoreShiftsStrip({
   scheduledCount: number;
 }) {
   const [selected, setSelected] = useState<ShiftPerson | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
 
   const shown = activeNow.slice(0, 8);
@@ -54,6 +55,7 @@ export function StoreShiftsStrip({
   const moreWorked = worked.length - shownWorked.length;
 
   const hasAny = activeNow.length > 0 || scheduled.length > 0 || worked.length > 0;
+  const hasMoreThanActive = scheduledCount > 0 || worked.length > 0;
   const modalTitle = useMemo(() => (selected ? selected.name : ""), [selected]);
   const employeeId = selected?.employeeId ?? null;
 
@@ -144,6 +146,24 @@ export function StoreShiftsStrip({
             Completed {worked.length}
           </span>
         </div>
+        {hasMoreThanActive ? (
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-white/70 dark:text-slate-200 dark:hover:bg-slate-900/60"
+            onClick={() => setShowAll((v) => !v)}
+            aria-label={showAll ? "Hide scheduled and completed shifts" : "Show scheduled and completed shifts"}
+          >
+            {showAll ? (
+              <>
+                Hide <ChevronUp className="h-4 w-4" />
+              </>
+            ) : (
+              <>
+                All <ChevronDown className="h-4 w-4" />
+              </>
+            )}
+          </button>
+        ) : null}
       </div>
 
       <div className="mt-3 space-y-2">
@@ -196,91 +216,89 @@ export function StoreShiftsStrip({
           </div>
         </div>
 
-        <div>
-          <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Scheduled</div>
-          <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-1">
-            {shownScheduled.length ? (
-              shownScheduled.map((p) => (
-                <button
-                  key={`sch-${p.employeeId}`}
-                  type="button"
-                  onClick={() => setSelected(p)}
-                  className="flex shrink-0 items-center gap-2 rounded-full bg-white px-2 py-1 text-left dark:bg-slate-900"
-                >
-                  <div
-                    className={clsx(
-                      "relative h-8 w-8 overflow-hidden rounded-full ring-2",
-                      "ring-sky-500/60"
-                    )}
-                    title={p.name}
-                  >
-                    {p.avatar ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.avatar} alt={p.name} className="h-8 w-8 object-cover" />
-                    ) : (
-                      <div className="flex h-8 w-8 items-center justify-center bg-white text-xs font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-200">
-                        {initials(p.name)}
+        {showAll ? (
+          <>
+            <div>
+              <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Scheduled</div>
+              <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-1">
+                {shownScheduled.length ? (
+                  shownScheduled.map((p) => (
+                    <button
+                      key={`sch-${p.employeeId}`}
+                      type="button"
+                      onClick={() => setSelected(p)}
+                      className="flex shrink-0 items-center gap-2 rounded-full bg-white px-2 py-1 text-left dark:bg-slate-900"
+                    >
+                      <div className={clsx("relative h-8 w-8 overflow-hidden rounded-full ring-2", "ring-sky-500/60")} title={p.name}>
+                        {p.avatar ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={p.avatar} alt={p.name} className="h-8 w-8 object-cover" />
+                        ) : (
+                          <div className="flex h-8 w-8 items-center justify-center bg-white text-xs font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                            {initials(p.name)}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="max-w-[10rem] truncate text-xs font-semibold">{p.name}</div>
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400">{p.timeLabel}</div>
-                  </div>
-                </button>
-              ))
-            ) : (
-              <div className="text-xs text-slate-500 dark:text-slate-400">No scheduled shifts</div>
-            )}
-
-            {moreScheduled > 0 ? (
-              <div className="shrink-0 text-xs font-semibold text-slate-500 dark:text-slate-400">+{moreScheduled}</div>
-            ) : null}
-          </div>
-        </div>
-
-        <div>
-          <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Completed</div>
-          <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-1">
-            {shownWorked.length ? (
-              shownWorked.map((p) => (
-                <button
-                  key={`wrk-${p.employeeId}`}
-                  type="button"
-                  onClick={() => setSelected(p)}
-                  className="flex shrink-0 items-center gap-2 rounded-2xl bg-white px-2 py-1 text-left dark:bg-slate-900"
-                >
-                  <div className={clsx("relative h-8 w-8 overflow-hidden rounded-full ring-2", "ring-slate-300 dark:ring-slate-700")} title={p.name}>
-                    {p.avatar ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.avatar} alt={p.name} className="h-8 w-8 object-cover" />
-                    ) : (
-                      <div className="flex h-8 w-8 items-center justify-center bg-white text-xs font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-200">
-                        {initials(p.name)}
+                      <div className="min-w-0">
+                        <div className="max-w-[10rem] truncate text-xs font-semibold">{p.name}</div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400">{p.timeLabel}</div>
                       </div>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="max-w-[10rem] truncate text-xs font-semibold">{p.name}</div>
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400">{p.timeLabel}</div>
-                    {p.breaks?.length ? (
-                      <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
-                        <Coffee className="h-3 w-3" />
-                        <span className="max-w-[12rem] truncate">{p.breaks.join(", ")}</span>
-                      </div>
-                    ) : null}
-                  </div>
-                </button>
-              ))
-            ) : (
-              <div className="text-xs text-slate-500 dark:text-slate-400">No completed shifts</div>
-            )}
+                    </button>
+                  ))
+                ) : (
+                  <div className="text-xs text-slate-500 dark:text-slate-400">No scheduled shifts</div>
+                )}
 
-            {moreWorked > 0 ? (
-              <div className="shrink-0 text-xs font-semibold text-slate-500 dark:text-slate-400">+{moreWorked}</div>
-            ) : null}
-          </div>
-        </div>
+                {moreScheduled > 0 ? (
+                  <div className="shrink-0 text-xs font-semibold text-slate-500 dark:text-slate-400">+{moreScheduled}</div>
+                ) : null}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Completed</div>
+              <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-1">
+                {shownWorked.length ? (
+                  shownWorked.map((p) => (
+                    <button
+                      key={`wrk-${p.employeeId}`}
+                      type="button"
+                      onClick={() => setSelected(p)}
+                      className="flex shrink-0 items-center gap-2 rounded-2xl bg-white px-2 py-1 text-left dark:bg-slate-900"
+                    >
+                      <div className={clsx("relative h-8 w-8 overflow-hidden rounded-full ring-2", "ring-slate-300 dark:ring-slate-700")} title={p.name}>
+                        {p.avatar ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={p.avatar} alt={p.name} className="h-8 w-8 object-cover" />
+                        ) : (
+                          <div className="flex h-8 w-8 items-center justify-center bg-white text-xs font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                            {initials(p.name)}
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="max-w-[10rem] truncate text-xs font-semibold">{p.name}</div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400">{p.timeLabel}</div>
+                        {p.breaks?.length ? (
+                          <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                            <Coffee className="h-3 w-3" />
+                            <span className="max-w-[12rem] truncate">{p.breaks.join(", ")}</span>
+                          </div>
+                        ) : null}
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="text-xs text-slate-500 dark:text-slate-400">No completed shifts</div>
+                )}
+
+                {moreWorked > 0 ? (
+                  <div className="shrink-0 text-xs font-semibold text-slate-500 dark:text-slate-400">+{moreWorked}</div>
+                ) : null}
+              </div>
+            </div>
+          </>
+        ) : null}
       </div>
 
       {hasAny && selected ? (

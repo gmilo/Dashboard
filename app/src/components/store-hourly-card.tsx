@@ -498,78 +498,16 @@ function SummaryModal({
 
                 return (
                   <>
-                    <div className="mt-2 space-y-2 sm:hidden">
-                      {visible.map((d, idx) => {
-                        const day = String(d.date ?? "").slice(0, 10) || "—";
-                        const sold = typeof d.sold === "number" ? d.sold : Number(d.sold ?? 0);
-                        const orders = typeof d.sales_count === "number" ? d.sales_count : Number(d.sales_count ?? 0);
-                        const gross = Number(d.amounts?.gross ?? 0);
-                        const disc = Number(d.amounts?.discount ?? 0);
-                        const final = Number(d.amounts?.final_amount ?? 0);
-                        return (
-                          <div key={`${day}-${idx}`} className="rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900">
-                            <div className="flex items-baseline justify-between gap-3">
-                              <div className="text-[11px] font-semibold">{day}</div>
-                              <div className="text-[11px] font-semibold tabular-nums">{formatAUD(final)}</div>
-                            </div>
-                            <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-slate-600 dark:text-slate-300">
-                              <div className="flex items-baseline justify-between gap-2">
-                                <span>Sold</span>
-                                <span className="tabular-nums">{formatNumber(sold)}</span>
-                              </div>
-                              <div className="flex items-baseline justify-between gap-2">
-                                <span>Orders</span>
-                                <span className="tabular-nums">{formatNumber(orders)}</span>
-                              </div>
-                              <div className="flex items-baseline justify-between gap-2">
-                                <span>Gross</span>
-                                <span className="tabular-nums">{formatAUD(gross)}</span>
-                              </div>
-                              <div className="flex items-baseline justify-between gap-2">
-                                <span>Disc</span>
-                                <span className="tabular-nums">{formatAUD(disc)}</span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-950/40">
-                        <div className="flex items-baseline justify-between gap-3">
-                          <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">Total</div>
-                          <div className="text-[11px] font-semibold tabular-nums text-slate-700 dark:text-slate-200">{formatAUD(totals.final)}</div>
-                        </div>
-                        <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-slate-600 dark:text-slate-300">
-                          <div className="flex items-baseline justify-between gap-2">
-                            <span>Sold</span>
-                            <span className="tabular-nums">{formatNumber(totals.sold)}</span>
-                          </div>
-                          <div className="flex items-baseline justify-between gap-2">
-                            <span>Orders</span>
-                            <span className="tabular-nums">{formatNumber(totals.orders)}</span>
-                          </div>
-                          <div className="flex items-baseline justify-between gap-2">
-                            <span>Gross</span>
-                            <span className="tabular-nums">{formatAUD(totals.gross)}</span>
-                          </div>
-                          <div className="flex items-baseline justify-between gap-2">
-                            <span>Disc</span>
-                            <span className="tabular-nums">{formatAUD(totals.disc)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-2 hidden sm:block">
-                      <table className="w-full table-fixed text-[11px] text-slate-700 dark:text-slate-200">
-                        <thead className="text-[10px] text-slate-500 dark:text-slate-400">
+                    <div className="mt-2 overflow-x-auto">
+                      <table className="scroll-table">
+                        <thead>
                           <tr>
-                            <th className="w-[16%] py-2 text-left font-medium">Date</th>
-                            <th className="w-[10%] py-2 text-right font-medium">Sold</th>
-                            <th className="w-[12%] py-2 text-right font-medium">Orders</th>
-                            <th className="w-[22%] py-2 text-right font-medium">Gross</th>
-                            <th className="w-[20%] py-2 text-right font-medium">Discount</th>
-                            <th className="w-[20%] py-2 text-right font-medium">Final</th>
+                            <th>Date</th>
+                            <th className="text-right">Sold</th>
+                            <th className="text-right">Orders</th>
+                            <th className="text-right">Gross</th>
+                            <th className="text-right">Disc</th>
+                            <th className="text-right">Final</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -581,25 +519,25 @@ function SummaryModal({
                             const disc = Number(d.amounts?.discount ?? 0);
                             const final = Number(d.amounts?.final_amount ?? 0);
                             return (
-                              <tr key={`${day}-${idx}`} className="border-t border-slate-200 dark:border-slate-800">
-                                <td className="py-2 pr-2 whitespace-nowrap font-medium">{day}</td>
-                                <td className="py-2 text-right tabular-nums whitespace-nowrap">{formatNumber(sold)}</td>
-                                <td className="py-2 text-right tabular-nums whitespace-nowrap">{formatNumber(orders)}</td>
-                                <td className="py-2 text-right tabular-nums whitespace-nowrap">{formatAUD(gross)}</td>
-                                <td className="py-2 text-right tabular-nums whitespace-nowrap">{formatAUD(disc)}</td>
-                                <td className="py-2 text-right tabular-nums font-semibold whitespace-nowrap">{formatAUD(final)}</td>
+                              <tr key={`${day}-${idx}`}>
+                                <td className="font-medium">{day}</td>
+                                <td className="text-right tabular-nums">{formatNumber(sold)}</td>
+                                <td className="text-right tabular-nums">{formatNumber(orders)}</td>
+                                <td className="text-right tabular-nums">{formatAUD(gross)}</td>
+                                <td className="text-right tabular-nums">{formatAUD(disc)}</td>
+                                <td className="text-right tabular-nums font-semibold">{formatAUD(final)}</td>
                               </tr>
                             );
                           })}
                         </tbody>
                         <tfoot>
-                          <tr className="border-t border-slate-200 dark:border-slate-800">
-                            <td className="py-2 pr-2 whitespace-nowrap font-semibold">Total</td>
-                            <td className="py-2 text-right tabular-nums font-semibold whitespace-nowrap">{formatNumber(totals.sold)}</td>
-                            <td className="py-2 text-right tabular-nums font-semibold whitespace-nowrap">{formatNumber(totals.orders)}</td>
-                            <td className="py-2 text-right tabular-nums font-semibold whitespace-nowrap">{formatAUD(totals.gross)}</td>
-                            <td className="py-2 text-right tabular-nums font-semibold whitespace-nowrap">{formatAUD(totals.disc)}</td>
-                            <td className="py-2 text-right tabular-nums font-semibold whitespace-nowrap">{formatAUD(totals.final)}</td>
+                          <tr>
+                            <td className="font-semibold">Total</td>
+                            <td className="text-right tabular-nums font-semibold">{formatNumber(totals.sold)}</td>
+                            <td className="text-right tabular-nums font-semibold">{formatNumber(totals.orders)}</td>
+                            <td className="text-right tabular-nums font-semibold">{formatAUD(totals.gross)}</td>
+                            <td className="text-right tabular-nums font-semibold">{formatAUD(totals.disc)}</td>
+                            <td className="text-right tabular-nums font-semibold">{formatAUD(totals.final)}</td>
                           </tr>
                         </tfoot>
                       </table>
