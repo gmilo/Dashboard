@@ -464,32 +464,34 @@ export function StoreShiftsStrip({
               ) : !(invData?.data ?? []).length ? (
                 <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">No inventory logs for this employee on {date}.</div>
               ) : (
-                <div className="mt-2 space-y-2">
-                  {(invData?.data ?? []).slice(0, 8).map((log: any) => {
-                    const inv = log.inventory ?? {};
-                    const metaQty = parseMetaQty(log.meta_data);
-                    const type = String(log.type ?? "");
-                    const isAdd = type.toLowerCase().includes("add");
-                    const qtyText = `${isAdd ? "+" : "-"}${metaQty}`;
-                    return (
-                      <div key={String(log.id ?? `${log.created_at}-${inv.name}-${type}`)} className="rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900">
-                        <div className="flex items-start justify-between gap-3 text-[11px]">
-                          <div className="min-w-0">
-                            <div className="truncate font-semibold">{inv.name ?? "Inventory"}</div>
-                            <div className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">{fmtLogTime(String(log.created_at ?? ""))}</div>
-                          </div>
-                          <div className="shrink-0 text-right">
-                            <div className={clsx("text-sm font-semibold tabular-nums", isAdd ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300")}>
-                              {qtyText}
+                <div className="mt-2 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+                  <div className="space-y-2">
+                    {(invData?.data ?? []).slice(0, 8).map((log: any) => {
+                      const inv = log.inventory ?? {};
+                      const metaQty = parseMetaQty(log.meta_data);
+                      const type = String(log.type ?? "");
+                      const isAdd = type.toLowerCase().includes("add");
+                      const qtyText = `${isAdd ? "+" : "-"}${metaQty}`;
+                      return (
+                        <div key={String(log.id ?? `${log.created_at}-${inv.name}-${type}`)} className="rounded-lg bg-slate-50 p-2 dark:bg-slate-950/40">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="truncate text-xs font-semibold text-slate-900 dark:text-white">{inv.name ?? "Inventory"}</div>
+                              <div className="mt-0.5 truncate text-[11px] text-slate-500 dark:text-slate-400">{fmtLogTime(String(log.created_at ?? ""))}</div>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <div className={clsx("text-sm font-semibold tabular-nums", isAdd ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300")}>
+                                {qtyText}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                  {(invData?.data ?? []).length > 8 ? (
-                    <div className="text-xs text-slate-500 dark:text-slate-400">Showing 8 of {(invData?.data ?? []).length} logs</div>
-                  ) : null}
+                      );
+                    })}
+                    {(invData?.data ?? []).length > 8 ? (
+                      <div className="text-xs text-slate-500 dark:text-slate-400">Showing 8 of {(invData?.data ?? []).length} logs</div>
+                    ) : null}
+                  </div>
                 </div>
               )}
             </div>

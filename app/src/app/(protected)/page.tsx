@@ -25,6 +25,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: R
       title="Dashboard"
       headerRight={
         <div className="flex items-center gap-2">
+          <DashboardDatePicker date={date} />
           <Link
             href="/members"
             className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-700 dark:border-slate-800 dark:text-slate-200"
@@ -33,7 +34,6 @@ export default async function DashboardPage({ searchParams }: { searchParams?: R
           >
             <Users className="h-4 w-4" />
           </Link>
-          <DashboardDatePicker date={date} />
         </div>
       }
     >
