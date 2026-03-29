@@ -7,15 +7,18 @@ export function PageShell({ title, headerRight, children }: { title: string; hea
   return (
     <div className="mx-auto min-h-dvh max-w-md pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
       <PushAutoSync />
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur shadow-sm dark:border-slate-800 dark:bg-slate-950/90 dark:shadow-none">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="truncate text-base font-semibold">{title}</h1>
-          <div className="flex items-center gap-2">
-            {headerRight}
-            <TopBarUser />
+      <div className="sticky top-0 z-40 shadow-sm dark:shadow-none">
+        <div className="h-[env(safe-area-inset-top)] bg-white/90 backdrop-blur dark:bg-slate-950/90" />
+        <header className="border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="truncate text-base font-semibold">{title}</h1>
+            <div className="flex items-center gap-2">
+              {headerRight}
+              <TopBarUser />
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      </div>
       <main className="px-4 py-4">{children}</main>
       <BottomNav />
     </div>

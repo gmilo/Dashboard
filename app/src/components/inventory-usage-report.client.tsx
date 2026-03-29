@@ -185,9 +185,9 @@ export function InventoryUsageReport({ todayISO }: { todayISO: string }) {
                 <th>Item</th>
                 <th className="text-center">+</th>
                 <th className="text-center">-</th>
+                <th className="text-center">Stock</th>
                 <th className="text-center">Avg</th>
                 <th className="text-right">Cost</th>
-                <th className="text-center">Stock</th>
                 {showCompany ? <th className="hidden sm:table-cell">Company</th> : null}
               </tr>
             </thead>
@@ -245,11 +245,11 @@ export function InventoryUsageReport({ todayISO }: { todayISO: string }) {
                         </div>
                       </div>
                     </td>
-                    <td className="text-center font-semibold text-emerald-700 dark:text-emerald-300">{addStock}</td>
+                    <td className="text-center font-semibold text-emerald-700 dark:text-emerald-300">{addStock === 0 ? "" : addStock}</td>
                     <td className="text-center font-semibold text-rose-700 dark:text-rose-300">{subStock}</td>
+                    <td className="text-center tabular-nums font-semibold">{stockQty}</td>
                     <td className="text-center tabular-nums">{avgPerDay.toFixed(2)}</td>
                     <td className="text-right tabular-nums font-semibold">{money(usageCost)}</td>
-                    <td className="text-center tabular-nums">{stockQty}</td>
                     {showCompany ? <td className="hidden sm:table-cell">{companyName}</td> : null}
                   </tr>
                 );
