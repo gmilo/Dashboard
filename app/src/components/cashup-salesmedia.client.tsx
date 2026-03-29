@@ -2,7 +2,8 @@
 
 import useSWR from "swr";
 import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { addDaysISO } from "@/lib/dates";
 
 type SalesMediaRow = {
   method: string;
@@ -65,6 +66,7 @@ export function CashupSalesMedia({ todayISO }: { todayISO: string }) {
   const [date, setDate] = useState<string>(todayISO);
   const [selected, setSelected] = useState<{ storeName: string; entry: CashupEntry; label: string } | null>(null);
   const key = ["cashup-salesmedia", date] as const;
+  const canGoNext = date < todayISO;
 
   const { data, error, isLoading } = useSWR<SalesMediaResponse>(key, async () => {
     const url = new URL("/api/cashup/salesmedia", window.location.origin);
@@ -127,12 +129,44 @@ export function CashupSalesMedia({ todayISO }: { todayISO: string }) {
   return (
     <div className="space-y-4">
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <input
-          type="date"
-          className="w-full rounded-xl border border-slate-200 bg-transparent px-3 py-3 text-sm dark:border-slate-800"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-        />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
+            onClick={() => {
+              setSelected(null);
+              setDate(addDaysISO(date, -1));
+            }}
+            aria-label="Previous day"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <input
+            type="date"
+            className="h-11 min-w-0 flex-1 rounded-xl border border-slate-200 bg-transparent px-3 text-sm dark:border-slate-800"
+            value={date}
+            onChange={(e) => {
+              setSelected(null);
+              setDate(e.target.value);
+            }}
+          />
+          <button
+            type="button"
+            disabled={!canGoNext}
+            className={[
+              "inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200",
+              !canGoNext ? "opacity-40" : ""
+            ].join(" ")}
+            onClick={() => {
+              if (!canGoNext) return;
+              setSelected(null);
+              setDate(addDaysISO(date, 1));
+            }}
+            aria-label="Next day"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
       </section>
 
       {error && !salesStores.length ? (
