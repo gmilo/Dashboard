@@ -13,6 +13,7 @@ type SalesPerDayRow = {
   date?: string;
   sold?: number;
   sales_count?: number;
+  last_sale_at?: string;
   avg_per_sale?: number;
   amounts?: {
     gross?: number;
@@ -22,6 +23,19 @@ type SalesPerDayRow = {
     final_amount?: number;
   };
 };
+
+function fmtTimeOnly(s?: string) {
+  if (!s) return "";
+  const trimmed = String(s).trim();
+  if (!trimmed) return "";
+  const cleaned = trimmed.split(".")[0] ?? trimmed;
+  const dt = new Date(cleaned.replace(" ", "T"));
+  if (!Number.isFinite(dt.getTime())) {
+    const parts = cleaned.split(" ");
+    return parts[1] ?? cleaned;
+  }
+  return new Intl.DateTimeFormat("en-AU", { hour: "numeric", minute: "2-digit", hour12: true }).format(dt);
+}
 
 export function StoreHourlyCard({
   store,
@@ -117,7 +131,7 @@ export function StoreHourlyCard({
         </div>
         <div className="ml-auto text-right">
           <div className="text-lg font-semibold">{formatAUD(summary.totalAmount)}</div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">Total sales</div>
+          <div className="text-xs italic text-slate-500 dark:text-slate-400">{fmtTimeOnly(perDay?.today?.last_sale_at) || "—"}</div>
         </div>
       </div>
 

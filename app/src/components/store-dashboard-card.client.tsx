@@ -24,6 +24,7 @@ type SalesPerDayRow = {
   date?: string;
   sold?: number;
   sales_count?: number;
+  last_sale_at?: string;
   avg_per_sale?: number;
   amounts?: {
     gross?: number;
