@@ -5,8 +5,6 @@ import { storesForAccess } from "@/lib/stores";
 import { getSession } from "@auth0/nextjs-auth0";
 import { companiesFromAuth0User } from "@/lib/auth-companies";
 import { DashboardDateFab } from "@/components/dashboard-date-fab.client";
-import Link from "next/link";
-import { Users } from "lucide-react";
 
 function isISODate(s: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -24,18 +22,6 @@ export default async function DashboardPage({ searchParams }: { searchParams?: R
     <PageShell
       title="Dashboard"
       contentMaxWidthClass="max-w-[56rem]"
-      headerRight={
-        <div className="flex items-center gap-2">
-          <Link
-            href="/members"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-700 dark:border-slate-800 dark:text-slate-200"
-            aria-label="Members"
-            title="Members"
-          >
-            <Users className="h-4 w-4" />
-          </Link>
-        </div>
-      }
     >
       <DashboardDateFab date={date} todayISO={today} />
       {stores.length ? (

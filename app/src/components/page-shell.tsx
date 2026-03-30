@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { BottomNav } from "@/components/bottom-nav";
 import { TopBarUser } from "@/components/top-bar-user";
 import { PushAutoSync } from "@/components/push-auto-sync.client";
+import Link from "next/link";
+import { Users } from "lucide-react";
 
 export function PageShell({
   title,
@@ -23,6 +25,14 @@ export function PageShell({
           <div className={`mx-auto flex w-full items-center justify-between gap-3 ${contentMaxWidthClass}`}>
             <h1 className="truncate text-base font-semibold">{title}</h1>
             <div className="flex items-center gap-2">
+              <Link
+                href="/members"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-700 dark:border-slate-800 dark:text-slate-200"
+                aria-label="Members"
+                title="Members"
+              >
+                <Users className="h-4 w-4" />
+              </Link>
               {headerRight}
               <TopBarUser />
             </div>

@@ -13,6 +13,7 @@ export type ShiftPerson = {
   isActiveNow: boolean;
   isOnBreak: boolean;
   timeLabel: string;
+  scheduledLabel?: string;
   shiftCost?: number;
   breaks?: string[];
   startImage?: string | null;
@@ -316,17 +317,17 @@ export function StoreShiftsStrip({
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="truncate text-sm font-semibold">{modalTitle}</div>
+                <div className="flex items-center gap-2">
+                  <div className="truncate text-sm font-semibold">{modalTitle}</div>
+                  {selected.isActiveNow ? (
+                    <span className={clsx("rounded-full px-2 py-0.5 text-[10px] font-semibold", selected.isOnBreak ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200")}>
+                      {selected.isOnBreak ? "On break" : "Active"}
+                    </span>
+                  ) : null}
+                </div>
                 {typeof selected.shiftCost === "number" && Number.isFinite(selected.shiftCost) ? (
-                  <div className="mt-0.5 text-xs font-semibold text-slate-900 dark:text-white tabular-nums">
+                  <div className="mt-1 text-xs font-semibold text-slate-900 dark:text-white tabular-nums">
                     {formatAUD(selected.shiftCost)} shift cost
-                  </div>
-                ) : null}
-                <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{selected.timeLabel}</div>
-                {selected.breaks?.length ? (
-                  <div className="mt-1 flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                    <Coffee className="h-3.5 w-3.5" />
-                    <span className="truncate">{selected.breaks.join(", ")}</span>
                   </div>
                 ) : null}
               </div>
@@ -338,6 +339,25 @@ export function StoreShiftsStrip({
               >
                 <X className="h-5 w-5" />
               </button>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {selected.timeLabel ? (
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                  {selected.timeLabel}
+                </span>
+              ) : null}
+              {selected.scheduledLabel ? (
+                <span className="rounded-full bg-sky-100 px-2.5 py-1 text-[11px] font-semibold text-sky-700 dark:bg-sky-500/20 dark:text-sky-200">
+                  {selected.scheduledLabel}
+                </span>
+              ) : null}
+              {selected.breaks?.length ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-700 dark:bg-amber-500/20 dark:text-amber-200">
+                  <Coffee className="h-3.5 w-3.5" />
+                  <span className="truncate">{selected.breaks.join(", ")}</span>
+                </span>
+              ) : null}
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-3">

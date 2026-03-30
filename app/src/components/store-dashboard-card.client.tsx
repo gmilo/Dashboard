@@ -74,6 +74,10 @@ type ShiftsResponse = {
       image_end?: string;
       breaks?: Array<{ time_start?: string; time_end?: string }>;
     }>;
+    scheduled?: Array<{
+      time_start?: string;
+      time_end?: string;
+    }>;
   }>;
   error?: string;
 };
@@ -280,6 +284,12 @@ export function StoreDashboardCard({ store, date }: { store: Store; date: string
     return `${timeStart}–${timeEnd}`;
   };
 
+  const formatRange = (timeStart?: string, timeEnd?: string) => {
+    if (!timeStart) return "";
+    if (!timeEnd) return timeStart;
+    return `${timeStart}–${timeEnd}`;
+  };
+
   const summarizeClocks = (
     clocks:
       | Array<{ time_start?: string; time_end?: string; image_start?: string; image_end?: string; breaks?: Array<{ time_start?: string; time_end?: string }> }>
@@ -310,6 +320,8 @@ export function StoreDashboardCard({ store, date }: { store: Store; date: string
       const isOnBreak = breaks.some((b) => b.time_end === "On Break");
       const { first, completedBreaks, ongoingBreaks } = summarizeClocks(s.shifts);
       const shiftCost = Number((s as any).total_cost ?? (s as any).shift_cost ?? 0);
+      const scheduledFirst = s.scheduled?.[0];
+      const scheduledLabel = scheduledFirst ? `Scheduled ${formatRange(scheduledFirst.time_start, scheduledFirst.time_end)}` : "";
       return {
         employeeId: s.employee_id,
         name: s.name,
@@ -317,6 +329,7 @@ export function StoreDashboardCard({ store, date }: { store: Store; date: string
         isActiveNow: true,
         isOnBreak,
         timeLabel: formatTimeLabel(first?.time_start, first?.time_end),
+        scheduledLabel: scheduledLabel || undefined,
         shiftCost: Number.isFinite(shiftCost) && shiftCost ? shiftCost : undefined,
         breaks: [...ongoingBreaks, ...completedBreaks],
         startImage: first?.image_start ?? null,
@@ -329,6 +342,8 @@ export function StoreDashboardCard({ store, date }: { store: Store; date: string
     .map((s) => {
       const { first, start, end, completedBreaks, ongoingBreaks } = summarizeClocks(s.shifts);
       const shiftCost = Number((s as any).total_cost ?? (s as any).shift_cost ?? 0);
+      const scheduledFirst = s.scheduled?.[0];
+      const scheduledLabel = scheduledFirst ? `Scheduled ${formatRange(scheduledFirst.time_start, scheduledFirst.time_end)}` : "";
       return {
         employeeId: s.employee_id,
         name: s.name,
@@ -336,6 +351,7 @@ export function StoreDashboardCard({ store, date }: { store: Store; date: string
         isActiveNow: false,
         isOnBreak: false,
         timeLabel: start && end ? `${start}–${end}` : "",
+        scheduledLabel: scheduledLabel || undefined,
         shiftCost: Number.isFinite(shiftCost) && shiftCost ? shiftCost : undefined,
         breaks: [...ongoingBreaks, ...completedBreaks],
         startImage: first?.image_start ?? null,
