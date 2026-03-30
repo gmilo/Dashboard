@@ -23,6 +23,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: R
   return (
     <PageShell
       title="Dashboard"
+      contentMaxWidthClass="max-w-[56rem]"
       headerRight={
         <div className="flex items-center gap-2">
           <Link
@@ -38,7 +39,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: R
     >
       <DashboardDateFab date={date} todayISO={today} />
       {stores.length ? (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 min-[800px]:grid-cols-2">
           {stores.map((store) => (
             <StoreDashboardCard key={store.id} store={store} date={date} />
           ))}

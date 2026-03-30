@@ -29,7 +29,7 @@ export function BottomNav() {
               href={href}
               className={clsx(
                 "flex flex-1 flex-col items-center gap-1 py-2 text-xs",
-                active ? "text-slate-900 dark:text-slate-50" : "text-slate-600 dark:text-slate-400"
+                active ? "text-[#EE5621]" : "text-slate-600 dark:text-slate-400"
               )}
             >
               <Icon className={clsx("h-5 w-5", active && "stroke-[2.5]")} />
